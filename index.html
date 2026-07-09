@@ -1,0 +1,1301 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="robots" content="noindex, nofollow">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>四神組織診断 V4 ── 文言検証プレビュー</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Serif+JP:wght@400;700;900&family=Noto+Sans+JP:wght@300;400;500;700&family=Zen+Old+Mincho:wght@400;700;900&display=swap" rel="stylesheet">
+<style>
+:root{
+  --ink:#1a1614;--paper:#faf9f7;--accent:#2a5298;--accent2:#c8922a;
+  --muted:#7a7470;--line:#e0dbd4;--fv-bg-start:#f7f6f4;--fv-bg-end:#eceaf0;
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:'Noto Sans JP',sans-serif;background:var(--paper);color:var(--ink);line-height:1.8;overflow-x:hidden;}
+
+/* ══ V4 検証コントロール ══ */
+#v4-bar{position:sticky;top:0;z-index:50;background:#1a1614;color:#fff;padding:10px 14px;display:flex;flex-wrap:wrap;gap:10px;align-items:center;box-shadow:0 2px 12px rgba(0,0,0,.25);}
+#v4-bar .v4-title{font-family:'Zen Old Mincho',serif;font-weight:900;letter-spacing:.1em;font-size:14px;color:#f0c060;margin-right:4px;}
+#v4-bar label{font-size:11px;color:rgba(255,255,255,.6);letter-spacing:.08em;margin-right:2px;}
+#v4-bar select{font-family:inherit;font-size:14px;font-weight:700;padding:7px 10px;border-radius:8px;border:1px solid rgba(255,255,255,.25);background:#2a2520;color:#fff;cursor:pointer;}
+#v4-bar .v4-x{color:rgba(255,255,255,.4);font-weight:700;}
+#v4-bar .v4-note{font-size:10.5px;color:rgba(255,255,255,.45);width:100%;line-height:1.6;}
+#v4-bar .v4-quizbtn{margin-left:auto;font-size:12px;font-weight:700;padding:7px 14px;border-radius:8px;border:1px solid rgba(255,255,255,.25);background:transparent;color:#fff;cursor:pointer;}
+#v4-bar .v4-quizbtn:hover{background:rgba(255,255,255,.1);}
+
+/* ドラフトバッジ */
+#draft-badge{position:fixed;right:10px;bottom:12px;z-index:60;background:#c8432a;color:#fff;font-size:10.5px;font-weight:700;letter-spacing:.05em;padding:6px 12px;border-radius:100px;box-shadow:0 4px 16px rgba(0,0,0,.3);display:none;}
+
+/* ══ 16問クイズ（折りたたみ）══ */
+#quiz-wrap{max-width:600px;margin:0 auto;padding:0 20px;overflow:hidden;max-height:0;transition:max-height .4s ease;}
+#quiz-wrap.open{max-height:none;padding:20px;}
+.q-block{border-bottom:1px solid #ece8e2;padding:16px 0;}
+.q-num{font-size:11px;letter-spacing:.15em;color:#9aaac8;font-weight:600;margin-bottom:8px;display:block;}
+.q-text{font-size:15px;color:#1a1e2e;line-height:1.7;margin-bottom:14px;font-weight:700;}
+.circles-wrap{display:flex;align-items:center;gap:10px;}
+.cw-lbl{font-size:11px;font-weight:600;white-space:nowrap;flex-shrink:0;}
+.cw-lbl.l{color:#2a7a5a;}.cw-lbl.r{color:#6a4a8a;}
+.circles-inner{display:flex;align-items:center;gap:14px;flex:1;justify-content:center;}
+.circle{border-radius:50%;background:#fff;cursor:pointer;border:2px solid #b0b0c0;transition:all .12s;}
+.sz-lg{width:38px;height:38px;border-color:#2a7a5a;}
+.sz-md{width:32px;height:32px;border-color:#6a9a80;}
+.sz-sm{width:26px;height:26px;border-color:#a0a0b4;}
+.circle[data-pos="3"]{border-color:#9a7ab0;}
+.circle[data-pos="4"]{border-color:#6a4a8a;}
+.circle.sel{position:relative;}
+.circle.sel::after{content:'✓';color:#fff;font-weight:700;position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:14px;}
+.circle[data-pos="0"].sel{background:#2a7a5a;border-color:#2a7a5a;}
+.circle[data-pos="1"].sel{background:#6a9a80;border-color:#6a9a80;}
+.circle[data-pos="2"].sel{background:#9a9aaa;border-color:#9a9aaa;}
+.circle[data-pos="3"].sel{background:#9a7ab0;border-color:#9a7ab0;}
+.circle[data-pos="4"].sel{background:#6a4a8a;border-color:#6a4a8a;}
+#quiz-actions{display:flex;gap:12px;margin:24px 0 8px;}
+#quiz-submit{flex:1;padding:15px;background:var(--accent);color:#fff;font-weight:700;border:none;border-radius:10px;cursor:pointer;font-family:inherit;font-size:15px;}
+#quiz-random{padding:15px 18px;background:#fff;color:var(--muted);border:1px solid var(--line);border-radius:10px;cursor:pointer;font-family:inherit;font-size:13px;}
+#quiz-err{color:#c0392b;font-size:13px;margin-top:8px;display:none;}
+
+/* ══ 結果画面（mock流用）══ */
+.site-header{background:#fff;border-bottom:1px solid var(--line);color:var(--ink);padding:14px 20px;display:flex;align-items:center;gap:12px;font-size:13px;letter-spacing:.12em;}
+.site-header .brand{font-family:'Zen Old Mincho',serif;font-size:17px;font-weight:700;letter-spacing:.2em;color:var(--accent);}
+.fv{min-height:auto;display:flex;flex-direction:column;background:linear-gradient(160deg,#f7f6f4 0%,#eeeaf4 55%,#e8e4f0 100%);position:relative;overflow:hidden;padding-top:36px;}
+.fv::before{content:'';position:absolute;inset:0;background:radial-gradient(ellipse 55% 60% at 65% 45%,rgba(42,82,152,.07) 0%,transparent 65%);pointer-events:none;}
+.fv-text{display:flex;flex-direction:column;align-items:flex-start;padding:8px 24px 48px;position:relative;z-index:1;max-width:680px;margin:0 auto;width:100%;}
+.fv-label{display:inline-flex;align-items:center;gap:8px;font-size:11px;letter-spacing:.25em;color:var(--accent2);text-transform:uppercase;margin-bottom:20px;font-weight:700;}
+.fv-label::before{content:'';display:block;width:24px;height:1px;background:var(--accent2);}
+.fv-type-badge{display:inline-flex;align-items:center;gap:10px;background:rgba(42,82,152,.08);border:1px solid rgba(42,82,152,.2);border-radius:4px;padding:6px 16px;color:var(--accent);font-size:13px;letter-spacing:.1em;margin-bottom:18px;width:fit-content;font-weight:600;}
+.fv-title{font-family:'Zen Old Mincho',serif;font-size:clamp(38px,12vw,58px);color:var(--ink);line-height:1.2;font-weight:900;margin-bottom:8px;letter-spacing:.1em;}
+.fv-title .accent-char{color:var(--accent);}
+.fv-subtitle{font-size:14px;color:var(--muted);letter-spacing:.12em;margin-bottom:26px;}
+.fv-keywords{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:30px;}
+.kw-tag{background:rgba(42,82,152,.07);border:1px solid rgba(42,82,152,.18);color:var(--accent);padding:5px 16px;border-radius:100px;font-size:13px;letter-spacing:.1em;font-weight:600;}
+.kw-tag.highlight{background:var(--accent);border-color:var(--accent);color:#fff;}
+.fv-desc{color:#4a4540;font-size:15px;line-height:1.9;max-width:420px;border-left:3px solid var(--accent);padding-left:20px;}
+.scroll-hint{text-align:center;padding:20px;background:var(--paper);color:var(--muted);font-size:12px;letter-spacing:.2em;}
+.section{padding:20px 0;background:#f0ede8;}
+.section-inner{max-width:600px;margin:0 auto;padding:0 20px;}
+.content-card{background:#fff;border:1px solid var(--line);border-radius:16px;overflow:hidden;margin-bottom:16px;}
+.card-header{display:flex;align-items:center;gap:12px;padding:16px 22px;border-bottom:1px solid var(--line);background:#faf9f7;}
+.card-header-icon{width:36px;height:36px;background:var(--accent);border-radius:8px;display:flex;align-items:center;justify-content:center;color:#fff;font-size:16px;flex-shrink:0;font-family:'Zen Old Mincho',serif;}
+.card-header-title{font-size:16px;font-weight:700;color:var(--ink);letter-spacing:.03em;}
+.card-header-title strong{color:var(--accent);}
+.card-body{padding:24px 22px;}
+.comp-label{font-size:11px;letter-spacing:.2em;color:var(--muted);text-transform:uppercase;font-weight:700;margin-bottom:14px;}
+.comp-legend{display:flex;flex-direction:column;gap:9px;}
+.comp-item{display:flex;align-items:center;gap:12px;}
+.comp-item-left{display:flex;align-items:center;gap:6px;width:52px;flex-shrink:0;}
+.comp-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0;}
+.comp-name{font-size:13px;font-weight:700;color:var(--ink);}
+.comp-name.primary{color:var(--accent);}
+.comp-bar-track{flex:1;height:12px;background:rgba(0,0,0,.07);border-radius:100px;overflow:hidden;}
+.comp-bar-fill{height:100%;border-radius:100px;transition:width .6s ease;}
+.comp-pct-num{font-size:15px;font-weight:900;font-family:'Zen Old Mincho',serif;width:38px;text-align:right;flex-shrink:0;}
+.traits-lead{font-size:16px;line-height:2;color:var(--ink);margin-bottom:20px;}
+.bullet-row{display:flex;gap:12px;align-items:flex-start;font-size:14px;color:var(--ink);line-height:1.7;margin-bottom:10px;}
+.bullet-row .mk{color:var(--accent);font-weight:700;flex-shrink:0;}
+.actions-grid{display:flex;flex-direction:column;gap:16px;}
+.action-item{display:flex;gap:16px;align-items:flex-start;}
+.action-num{font-family:'Zen Old Mincho',serif;font-size:28px;font-weight:900;color:var(--accent);opacity:.3;line-height:1;flex-shrink:0;width:32px;}
+.action-text{display:flex;flex-direction:column;gap:2px;}
+.action-text strong{font-size:15px;color:var(--ink);}
+.action-text span{font-size:13px;color:var(--muted);}
+.sw-grid{display:grid;grid-template-columns:1fr;gap:14px;}
+.sw-card{border-radius:12px;padding:18px;}
+.sw-card.strength{background:#f0f4fb;border:1px solid rgba(42,82,152,.15);}
+.sw-card.weakness{background:#fdf5f0;border:1px solid rgba(192,80,48,.12);}
+.sw-card-title{font-size:14px;font-weight:700;color:var(--ink);margin-bottom:10px;line-height:1.5;}
+.sw-list{list-style:none;display:flex;flex-direction:column;gap:6px;}
+.sw-list li{font-size:13px;color:var(--muted);padding-left:12px;position:relative;line-height:1.6;}
+.sw-list li::before{content:'·';position:absolute;left:0;color:var(--accent);}
+.sw-bridge{text-align:center;padding:26px 6px 22px;font-family:'Zen Old Mincho',serif;font-size:clamp(15px,4.4vw,17px);font-weight:700;color:var(--ink);line-height:1.9;text-wrap:balance;}
+.sw-bridge-label{font-size:13px;letter-spacing:.1em;color:#a8543a;font-weight:700;margin-bottom:12px;}
+.plain-center{max-width:600px;}
+.wall-q{font-family:'Zen Old Mincho',serif;font-size:17px;font-weight:700;color:var(--ink);text-align:center;line-height:1.9;margin:0 0 36px;}
+.wall-line{font-size:16px;color:var(--ink);line-height:2.1;text-align:center;margin-bottom:22px;}
+.wall-punch{font-family:'Zen Old Mincho',serif;font-size:clamp(20px,6vw,26px);font-weight:900;color:var(--ink);text-align:center;line-height:1.6;margin:0;text-wrap:balance;}
+.navy{background:var(--accent);padding:44px 0;}
+.navy .section-inner{text-align:center;}
+.navy h3{font-family:'Zen Old Mincho',serif;font-size:clamp(19px,5.6vw,24px);font-weight:900;color:#fff;line-height:1.7;margin-bottom:16px;}
+.navy p{font-size:15px;color:rgba(255,255,255,.82);line-height:2;}
+.navy .gold{color:#f0c060;}
+.navy-box{background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.2);border-radius:12px;padding:18px 26px;display:inline-block;margin-top:20px;}
+.navy-box .lb{font-size:12px;color:rgba(255,255,255,.5);letter-spacing:.15em;margin-bottom:8px;}
+.navy-box .vl{font-size:18px;font-weight:900;color:#fff;letter-spacing:.05em;}
+.shadow-card .card-header{background:#1a1614;}
+.shadow-card .card-header-icon{background:rgba(255,255,255,.15);}
+.shadow-card .card-header-title{color:#fff;}
+.shadow-card .card-header-title strong{color:#f0c060;}
+.shadow-sub{font-size:12px;color:rgba(255,255,255,.5);margin-top:2px;letter-spacing:.08em;}
+.shadow-symp{background:#faf8f4;border:1px solid #ece6dc;border-radius:10px;padding:18px 20px;margin:20px 0;display:flex;flex-direction:column;gap:12px;}
+.shadow-symp .sy{font-size:15px;font-weight:700;color:var(--ink);display:flex;gap:10px;align-items:flex-start;line-height:1.7;}
+.shadow-symp .sy .mk{color:#c8922a;flex-shrink:0;}
+.shadow-qualities{display:flex;flex-wrap:wrap;gap:10px;margin:20px 0;}
+.sq-tag{background:#f5f2ec;border:1px solid var(--line);padding:8px 16px;border-radius:6px;font-size:13.5px;font-weight:700;color:var(--ink);}
+.shadow-growth{font-size:15px;line-height:2;color:var(--ink);margin-top:24px;padding-top:20px;border-top:1px solid var(--line);font-weight:700;}
+.section-cta{background:var(--paper);padding:40px 0;text-align:center;}
+.btn-primary{display:inline-flex;align-items:center;gap:10px;background:var(--accent);color:#fff;padding:16px 34px;border-radius:12px;font-size:15px;font-weight:700;border:none;cursor:pointer;letter-spacing:.05em;text-decoration:none;line-height:1.5;}
+.btn-line{background:#06C755;}
+.reg-list{margin-top:22px;display:flex;flex-direction:column;gap:6px;align-items:center;font-size:13px;color:var(--muted);line-height:1.8;}
+.teaser-box{background:#faf9f7;border:1px solid var(--line);border-radius:12px;padding:18px 22px;display:flex;flex-direction:column;gap:14px;margin:18px 0;}
+.teaser-box .ti{display:flex;gap:12px;font-size:15px;color:var(--ink);line-height:1.75;}
+.teaser-box .ti .mk{color:var(--accent);font-weight:700;flex-shrink:0;}
+
+/* ══ LINE 区切り ══ */
+.line-gate{background:#0c0a09;color:#06C755;text-align:center;padding:30px 24px;font-size:13px;letter-spacing:.06em;line-height:1.9;border-top:2px dashed #06C755;border-bottom:2px dashed #06C755;}
+.line-gate .lg-mark{font-size:11px;color:rgba(255,255,255,.4);display:block;margin-top:8px;letter-spacing:.1em;}
+
+/* ══ Part2 ══ */
+.p2-inner{max-width:560px;margin:0 auto;padding:0 20px;}
+.p2-sec{padding:48px 0;}
+.p2-sec.alt{background:#f0ede8;}
+.p2-kicker{text-align:center;font-size:11px;letter-spacing:.22em;color:var(--muted);font-weight:700;margin-bottom:14px;}
+.p2-kicker.case{font-size:14px;letter-spacing:.1em;color:var(--accent);margin-bottom:16px;}
+.p2-kicker.case::before{content:'';display:block;width:34px;height:2px;background:var(--accent);margin:0 auto 12px;}
+.p2-h2{font-family:'Zen Old Mincho',serif;font-size:clamp(21px,5.6vw,27px);font-weight:900;color:var(--ink);line-height:1.6;text-align:center;margin-bottom:22px;letter-spacing:.02em;text-wrap:balance;}
+.p2-p{font-size:15px;line-height:2;color:var(--ink);margin-bottom:16px;}
+.p2-p.center{text-align:center;}
+.p2-p.mut{color:var(--muted);}
+.p2-lines{display:flex;flex-direction:column;gap:6px;margin:0 0 18px;}
+.p2-lines .ln{background:#efece7;border-radius:8px;padding:11px 16px;font-size:15px;font-weight:700;color:var(--ink);text-align:center;letter-spacing:.04em;}
+.p2-check{display:flex;flex-direction:column;gap:8px;margin:0 0 20px;}
+.p2-check .ck{display:flex;gap:10px;align-items:flex-start;background:#fff;border:1px solid var(--line);border-radius:10px;padding:12px 16px;font-size:14px;line-height:1.75;color:var(--ink);}
+.p2-check.ask .ck::before{content:'？';color:var(--accent);font-weight:700;font-size:13px;flex-shrink:0;}
+.p2-bridge{text-align:center;font-family:'Zen Old Mincho',serif;font-size:15px;color:var(--ink);line-height:1.95;margin:22px 0 0;text-wrap:balance;}
+.p2-close{font-family:'Zen Old Mincho',serif;font-size:clamp(16px,4.6vw,19px);font-weight:700;color:var(--ink);line-height:2;text-align:center;padding:22px 10px;border-top:1px solid var(--line);border-bottom:1px solid var(--line);margin:8px 0;text-wrap:balance;}
+.p2-close em{font-style:normal;color:var(--accent);}
+.ba-card{border-radius:14px;overflow:hidden;border:1px solid var(--line);margin-bottom:16px;background:#fff;}
+.ba-head{padding:13px 18px;font-size:13px;font-weight:700;letter-spacing:.08em;display:flex;align-items:center;gap:10px;}
+.ba-card.before .ba-head{background:#6a6460;color:#fff;}
+.ba-card.after .ba-head{background:var(--accent);color:#fff;}
+.ba-tag{font-size:10px;letter-spacing:.16em;border:1px solid rgba(255,255,255,.5);border-radius:100px;padding:2px 10px;}
+.ba-body{padding:16px 14px;}
+.ba-list{display:flex;flex-direction:column;gap:7px;}
+.ba-list .it{display:flex;gap:9px;align-items:flex-start;font-size:15px;line-height:1.8;color:var(--ink);}
+.ba-card.before .it::before{content:'▸';color:#8a8480;flex-shrink:0;}
+.ba-card.after .it::before{content:'▸';color:var(--accent);flex-shrink:0;}
+.rank-card{border:1px solid var(--line);border-radius:12px;background:#fff;margin-bottom:12px;overflow:hidden;}
+.rank-card:last-child{margin-bottom:0;}
+.rank-head{display:flex;align-items:center;gap:12px;padding:12px 16px;border-bottom:1px solid var(--line);background:#faf9f7;}
+.rank-badge{font-family:'Zen Old Mincho',serif;font-size:18px;font-weight:900;color:#fff;width:34px;height:34px;border-radius:8px;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+.rank-A .rank-badge{background:var(--accent);}
+.rank-B .rank-badge{background:#c8922a;}
+.rank-C .rank-badge{background:#8a8480;}
+.rank-title{font-size:15px;font-weight:700;color:var(--ink);line-height:1.5;}
+.rank-body{padding:14px 16px;display:flex;flex-direction:column;gap:7px;}
+.rank-body .it{display:flex;gap:9px;align-items:flex-start;font-size:14.5px;line-height:1.75;color:var(--ink);}
+.rank-body .it::before{content:'・';color:var(--accent);flex-shrink:0;}
+.p2-vs{background:#fff;border:1px solid var(--line);border-radius:12px;padding:22px 20px;text-align:center;margin-bottom:20px;}
+.p2-vs .no{font-size:14px;color:var(--muted);line-height:1.8;}
+.p2-vs .yes{font-family:'Zen Old Mincho',serif;font-size:17px;font-weight:900;color:var(--accent);line-height:1.8;margin-top:8px;}
+.p2-trade{display:flex;flex-direction:column;gap:18px;margin-bottom:26px;}
+.p2-trade .tr{background:#f3f0ea;border-left:4px solid var(--accent);border-radius:0 10px 10px 0;padding:18px 20px;font-size:16px;line-height:1.6;color:var(--ink);}
+.p2-trade .tr span{color:var(--accent);font-weight:700;}
+.p2-band{background:var(--accent);padding:52px 0;margin-top:14px;}
+.p2-band .p2-inner{text-align:center;}
+.p2-band .big{font-family:'Zen Old Mincho',serif;font-size:clamp(20px,5.8vw,27px);font-weight:900;color:#fff;line-height:1.9;margin-bottom:26px;text-wrap:balance;}
+.p2-band .big em{font-style:normal;color:#f0c060;}
+.p2-brand{font-family:'Zen Old Mincho',serif;font-size:clamp(26px,8vw,38px);font-weight:900;color:#fff;letter-spacing:.06em;line-height:1.6;margin-bottom:24px;}
+.p2-def{display:inline-block;background:rgba(255,255,255,.1);border:1px solid rgba(240,192,96,.4);border-radius:12px;padding:18px 26px;font-family:'Zen Old Mincho',serif;font-size:clamp(15px,4.4vw,18px);font-weight:700;color:#fff;line-height:2;}
+.god-grid{display:flex;flex-direction:column;gap:10px;margin-bottom:26px;}
+.god{border-radius:12px;padding:16px 18px;display:flex;align-items:center;gap:14px;border:1px solid var(--line);background:#fff;}
+.god .nm{font-family:'Zen Old Mincho',serif;font-size:17px;font-weight:900;flex-shrink:0;width:44px;}
+.god .ds{font-size:15px;color:var(--ink);line-height:1.7;}
+.god.seiryu .nm{color:#2a5298;}.god.suzaku .nm{color:#e05c2a;}.god.byakko .nm{color:#c8922a;}.god.genbu .nm{color:#2a7a4a;}
+.res-pair{display:flex;gap:10px;margin-bottom:18px;}
+.res-box{flex:1;border-radius:12px;padding:16px 12px;text-align:center;border:1px solid var(--line);background:#fff;}
+.res-box .lab{font-size:11px;letter-spacing:.18em;color:var(--muted);font-weight:700;margin-bottom:6px;}
+.res-box .god-name{font-family:'Zen Old Mincho',serif;font-size:24px;font-weight:900;letter-spacing:.1em;}
+.res-box.riki{background:var(--accent);border-color:var(--accent);}
+.res-box.riki .lab{color:rgba(255,255,255,.72);}
+.res-box.riki .god-name{color:#fff;}
+.res-box.kage{background:#1a1614;border-color:#1a1614;}
+.res-box.kage .lab{color:rgba(255,255,255,.55);}
+.res-box.kage .god-name{color:#f0c060;}
+.mini-comp{background:#fff;border:1px solid var(--line);border-radius:12px;padding:13px 16px 11px;margin-bottom:18px;}
+.mini-comp .comp-label{margin-bottom:8px;}
+.mini-comp .comp-legend{gap:7px;}
+.p2-cta{background:linear-gradient(160deg,#f7f6f4 0%,#eeeaf4 60%,#e8e4f0 100%);padding:52px 0 60px;text-align:center;}
+.p2-cta .btn-primary{width:100%;max-width:420px;justify-content:center;padding:18px 24px;font-size:16px;}
+.p2-cta .pdf-note{margin-top:14px;font-size:14px;color:#4a4540;line-height:1.8;}
+</style>
+</head>
+<body>
+
+<!-- ══ V4 検証コントロールバー ══ -->
+<div id="v4-bar">
+  <span class="v4-title">四神診断 V4</span>
+  <label>利き神</label>
+  <select id="sel-ki"></select>
+  <span class="v4-x">×</span>
+  <label>影神</label>
+  <select id="sel-si"></select>
+  <button class="v4-quizbtn" id="toggle-quiz">16問モード ▾</button>
+  <div class="v4-note">文言検証用プレビュー（最終デザインではありません）。利き神×影神を切り替えると12パターンを即表示。本番は Part1 → LINE登録 → Part2 ですが、ここでは区切り線で連結表示しています。</div>
+</div>
+
+<!-- ══ 16問クイズ（折りたたみ）══ -->
+<div id="quiz-wrap">
+  <div id="quiz-questions"></div>
+  <div id="quiz-actions">
+    <button id="quiz-submit">この回答で診断する</button>
+    <button id="quiz-random">ランダム回答</button>
+  </div>
+  <div id="quiz-err">すべての設問に回答してください。</div>
+</div>
+
+<div id="draft-badge">文言ドラフト（未確定）</div>
+
+<!-- 結果描画先 -->
+<div id="part1"></div>
+<div id="line-gate-slot"></div>
+<div id="part2"></div>
+
+<script>
+const DATA = {
+  "_meta": {
+    "purpose": "四神組織診断 文言データ（単一ソース）。Excel『四神診断_文言データ設計_v2.xlsx』と同一内容。V4検証モック/本番実装の両方がこのJSONを読む前提。",
+    "src_legend": "_src=mock: 現行モック(青龍×白虎)の実データ / _src=draft: コア特性を元にしたAIドラフト(中川さんレビュー対象)",
+    "gods_order": [
+      "seiryu",
+      "suzaku",
+      "byakko",
+      "genbu"
+    ]
+  },
+  "gods": {
+    "seiryu": "青龍",
+    "suzaku": "朱雀",
+    "byakko": "白虎",
+    "genbu": "玄武"
+  },
+  "kanji": {
+    "seiryu": "龍",
+    "suzaku": "雀",
+    "byakko": "虎",
+    "genbu": "武"
+  },
+  "result_ids": [
+    "seiryu_suzaku",
+    "seiryu_byakko",
+    "seiryu_genbu",
+    "suzaku_seiryu",
+    "suzaku_byakko",
+    "suzaku_genbu",
+    "byakko_seiryu",
+    "byakko_suzaku",
+    "byakko_genbu",
+    "genbu_seiryu",
+    "genbu_suzaku",
+    "genbu_byakko"
+  ],
+  "kiki_master": {
+    "seiryu": {
+      "subtitle": "青龍タイプ ── イノベーター型組織",
+      "keywords": "創造・直感・スピード・拡張（強調：創造）",
+      "summary_body": "青龍型組織は、新しい世界をつくる衝動を原動力に動く組織です。まだ存在しない未来を直感し、考えるより先に動き、動きながら形にしていく。そのスピードと創造性が、新規事業・変革・挑戦の場面で大きな力になります。",
+      "summary_bullets": "新しいことを始める力が強く、動きながら形にするスピードがある\n前例のない市場や流れを、直感と行動力で切り開いていく",
+      "actions": "01 新規事業を次々立ち上げ、市場へ先行投入｜動き続けることで道をつくる\n02 役割が曖昧でも、有望な人材をどんどん登用｜可能性を広げる柔軟な人事\n03 外部パートナー・投資家を巻き込み事業連携｜勢いと注目を同時に集める\n04 トップが構想を語り、組織を牽引｜熱量が伝播するリーダーシップ\n05 海外展開・異業種──「境界の外」へ踏み出す｜既存市場に縛られない行動力",
+      "strength1": "強み① 創造の早さ・拡張の勢い\n・未整備の市場でも先に出て注目を集める\n・同時多発的に仕掛けを打てる\n・動きの連鎖で市場を切り開く",
+      "strength2": "強み② 人材・機会の吸引力\n・挑戦歓迎の文化が上昇志向人材を惹きつける\n・失敗→学習→次の挑戦のサイクルが回る\n・「動く者を中心に秩序が回る」柔軟な構造",
+      "weakness1": "弱み① トップのスピードに現場がついてこない\n・仕組みが整う前に次へ進んでしまう\n・未完の仕事が積み重なり、摩擦が生まれやすい",
+      "weakness2": "弱み② 自由が広がり、方向がばらつく\n・部署・人によって進む方向がズレやすい\n・組織全体の一貫性が揺らぐことも",
+      "wall_block": "このまま、青龍の勢いだけで走り続けると、どうなるか。\n案件は増え続ける。社員は疲れていく。そしてある日、一番優秀な人から辞めていきます。\n青龍型の会社が壁に当たるのは、業績が落ちたときではありません。\n勢いが、最高潮のときです。",
+      "riki_oneline": "青龍 は、まだ誰も見えていない未来を確信し、新しい世界を創ろうとする力です。",
+      "r2_title": "青龍型組織がぶつかる壁",
+      "r2_intro": "青龍は、御社をここまで伸ばしてきた力です。",
+      "r2_lines": "新しい商品。／新しい市場。／新しい採用。／新しい提携。／新しい案件。",
+      "r2_lead": "まだ誰も見えていない未来に賭ける。だから、会社は前に進んできました。／その一方で、青龍が強い会社では、こういうことが起きます。",
+      "r2_bacard": "青龍が強い会社で、起きていること\n・新しい案件が同時にいくつも走っている\n・どれも可能性があるように見える\n・どれも社長案件になりがち\n・現場は優先順位が分からない\n・完了する前に、次の話が始まる\n・成果になる前に、熱が冷める",
+      "r2_close": "問題は、アイデアが多いことではありません。全部を、同じ重さで扱ってしまうことです。",
+      "_src": "mock"
+    },
+    "suzaku": {
+      "subtitle": "朱雀タイプ ── ヒューマンドライブ型組織",
+      "keywords": "情熱・共鳴・巻き込み・関係性（強調：情熱）",
+      "summary_body": "朱雀型組織は、人の熱量と共感を原動力に動く組織です。感情・尊厳・関係性を大切にしながら、対話と物語で人を巻き込み、チームを一体化させていく。その温かさと巻き込み力が、文化づくり・顧客関係・組織の結束の場面で大きな力になります。",
+      "summary_bullets": "人を大切にする文化が、組織への信頼と熱量を生み出す\n共感と関係性を起点に、人が自然と動く組織をつくれる",
+      "actions": "01 1on1や対話の場を定期的に設ける｜関係性を深める継続的な接点\n02 社内イベントやワークショップで空気を温める｜一体感を生む場のデザイン\n03 顧客コミュニティやファンづくりに力を入れる｜関係性を競争力に変える\n04 部署横断の調整や合意形成を担う｜つなぐ力が組織を動かす\n05 ストーリーや理念を発信して組織を動かす｜共鳴が推進力になる",
+      "strength1": "強み① 人を動かす共感力と熱量\n・感情・物語・関係性で人を本気にさせられる\n・チームの一体感と熱量をつくり出せる\n・顧客や社内を「ファン」に変えられる",
+      "strength2": "強み② 文化と関係性を競争力にできる\n・離職を防ぎ、人が長く活躍できる環境をつくれる\n・部署横断の調整や合意形成を自然に担える\n・ストーリーと理念で組織を動かせる",
+      "weakness1": "弱み① 空気や関係性で意思決定してしまう\n・重要な判断が、場の雰囲気や共感で決まりやすい\n・筋の通った厳しい戦略が詰まりにくい",
+      "weakness2": "弱み② 配慮しすぎて決断が遅れる\n・関係を壊したくなくて、締めるべき場面で甘くなる\n・頑張りや姿勢を評価しすぎ、成果基準が曖昧になる",
+      "wall_block": "このまま、朱雀の温かさだけで進み続けると、どうなるか。\n仲は良い。けれど誰も厳しいことを言わなくなる。そしてある日、成果を出せる人から静かに離れていきます。\n朱雀型の会社が壁に当たるのは、対立が起きたときではありません。\n一番、居心地が良いときです。",
+      "riki_oneline": "朱雀 は、人の想いに火をつけ、共感と関係性で人を動かそうとする力です。",
+      "r2_title": "朱雀型組織がぶつかる壁",
+      "r2_intro": "朱雀は、御社をここまで伸ばしてきた力です。",
+      "r2_lines": "あの人のために。／このチームのために。／お客様のために。／信頼のために。／みんなのために。",
+      "r2_lead": "人を信じ、関係性に賭ける。だから、会社はここまで一体になってきました。／その一方で、朱雀が強い会社では、こういうことが起きます。",
+      "r2_bacard": "朱雀が強い会社で、起きていること\n・みんなの合意を待って物事が進む\n・厳しい判断が先延ばしになる\n・成果より、姿勢や頑張りが評価される\n・問題のある人にも手厚くしすぎる\n・その場の空気で結論が変わる\n・気づけば、成果よりも空気を守る組織になっている",
+      "r2_close": "問題は、人を大切にすることではありません。大切にすることと、甘くすることを、混同してしまうことです。",
+      "_src": "draft"
+    },
+    "byakko": {
+      "subtitle": "白虎タイプ ── プロフェッショナル型組織",
+      "keywords": "成果・合理・集中・高み（強調：集中）",
+      "summary_body": "白虎型組織は、勝てる領域に集中し、決めたことをやり切る実行力を原動力に動く組織です。成果への執着と合理的な判断で、常に「勝てる形」を追い求めます。その集中力と実行力が、競争や成果づくりの場面で大きな力になります。",
+      "summary_bullets": "勝てる領域を見極め、一点突破で成果を積み上げる\n数字と現場をつなぎ、決めたことをやり切る文化がある",
+      "actions": "01 勝てる領域に絞り込む｜どこで勝つかを決め、集中する\n02 KPIや数字を基準に勝ち筋を設計する｜感覚ではなく、勝てる形を設計\n03 現場で鍛えながら改善を回す｜実行と改善が同時に動く\n04 決めたことを最後までやり切る｜完遂が文化をつくる\n05 少数精鋭の高基準チームをつくる｜質の高さが競争力になる",
+      "strength1": "強み① 勝てる領域に集中できる実行力\n・どこで勝つかを見極め、一点突破で成果を出す\n・数字・現場・戦略をつなぐ実戦合理がある\n・決めたことをやり切る文化が根付いている",
+      "strength2": "強み② 高基準のチームをつくる力\n・少数精鋭で高い水準を保てる\n・成果が積み上がり、組織の自信と信頼につながる\n・改善と実行のサイクルが速い",
+      "weakness1": "弱み① 集中しすぎて視野が狭くなる\n・周辺の機会や外部の変化を見落としやすい\n・新しい芽が育つ前に切られやすい",
+      "weakness2": "弱み② 高い基準が、疲弊や脱落を生む\n・水準についてこられない人が出やすい\n・一貫性が、変化への硬さに変わりやすい",
+      "wall_block": "このまま、白虎の強さだけで押し切ると、どうなるか。\n数字は伸びる。基準も保たれる。けれど現場は張り詰め、そしてある日、優秀な人から燃え尽きていきます。\n白虎型の会社が壁に当たるのは、負けたときではありません。\n勝ち続けている、その最中です。",
+      "riki_oneline": "白虎 は、どこで勝つかを見極め、決めたことを最後までやり切ろうとする力です。",
+      "r2_title": "白虎型組織がぶつかる壁",
+      "r2_intro": "白虎は、御社をここまで伸ばしてきた力です。",
+      "r2_lines": "勝てるか。／数字で語れるか。／極め切れるか。／基準に届いたか。／筋は通っているか。",
+      "r2_lead": "勝てる一点に賭ける。だから、会社は成果を積み上げてきました。／その一方で、白虎が強い会社では、こういうことが起きます。",
+      "r2_bacard": "白虎が強い会社で、起きていること\n・勝てる案件以外は切り捨てられる\n・新しい芽が、育つ前に潰れる\n・基準についてこられない人が脱落する\n・現場が常に張り詰めている\n・数字にならないものは軽視される\n・気づけば精鋭だけが消耗している",
+      "r2_close": "問題は、成果を求めることではありません。勝てるものしか認めず、育つ前に切ってしまうことです。",
+      "_src": "draft"
+    },
+    "genbu": {
+      "subtitle": "玄武タイプ ── ストラクチャー型組織",
+      "keywords": "理・秩序・継続・再現性（強調：秩序）",
+      "summary_body": "玄武型組織は、理と秩序を原動力に、仕組みと再現性で全体を支える組織です。属人化に頼らず、再現性ある運用を設計し、継続と改善を積み重ねていく。その整合性と安定性が、品質・継続・組織基盤の場面で大きな力になります。",
+      "summary_bullets": "仕組みで回る世界をつくり、属人化に頼らない組織基盤がある\n継続と改善を深め、崩れない安定性を保てる",
+      "actions": "01 業務フローや役割を設計する｜仕組みで回せる組織をつくる\n02 標準化を進め、再現性を高める｜誰がやっても同じ品質を担保\n03 品質や進行を安定させる｜ばらつきをなくし信頼を積む\n04 問題の原因を構造的に掘り下げる｜根本から課題を解消する\n05 トラブル時も冷静に仕組みで対処する｜安定が組織の信頼をつくる",
+      "strength1": "強み① 仕組みで回る組織基盤をつくれる\n・属人化に頼らず、再現性ある運用を設計できる\n・誰が担当しても同じ品質で動ける体制を整えられる\n・標準化・継続・改善のサイクルが機能する",
+      "strength2": "強み② 整合性と安定性を保てる\n・感情や勢いに流されず、崩れない基盤を築ける\n・問題の原因を構造的に掘り下げられる\n・トラブル時も冷静に仕組みで対処できる",
+      "weakness1": "弱み① 内側の整備を優先しすぎる\n・外部の変化への感度が鈍りやすい\n・市場とのズレに気づくのが遅れる",
+      "weakness2": "弱み② 完璧主義でスピードを失う\n・整ってから出そうとして、動き出しが遅れる\n・仕組みが目的化し、人の温度が落ちやすい",
+      "wall_block": "このまま、玄武の堅実さだけで進むと、どうなるか。\n仕組みは整う。品質も安定する。けれど外の変化に鈍くなり、そしてある日、事業そのものが静かに古びていきます。\n玄武型の会社が壁に当たるのは、失敗したときではありません。\n何も問題が起きていない、その静けさの中です。",
+      "riki_oneline": "玄武 は、理と秩序を重んじ、仕組みと再現性で組織を支えようとする力です。",
+      "r2_title": "玄武型組織がぶつかる壁",
+      "r2_intro": "玄武は、御社をここまで伸ばしてきた力です。",
+      "r2_lines": "誰がやっても同じか。／仕組みで動くか。／整っているか。／崩れず続くか。／再現できるか。",
+      "r2_lead": "崩れない仕組みに賭ける。だから、会社は安定して回ってきました。／その一方で、玄武が強い会社では、こういうことが起きます。",
+      "r2_bacard": "玄武が強い会社で、起きていること\n・前例のないことは後回しになる\n・整えること自体が目的になっている\n・新しい挑戦が起きなくなる\n・外の変化に気づくのが遅れる\n・完璧を待って動き出せない\n・気づけば事業が古びている",
+      "r2_close": "問題は、仕組みを整えることではありません。整えることが目的になり、変化を止めてしまうことです。",
+      "_src": "draft"
+    }
+  },
+  "kage_master": {
+    "byakko": {
+      "kage_def": "勝てる領域を見極め、やることを絞り、数字と現場をつなぎ、決めたことをやり切る力です。",
+      "shadow_tags": "・決めたことをやり切る\n・数字と現場で勝ち筋を絞る\n・一点突破で成果を積み上げる",
+      "_src": "mock"
+    },
+    "seiryu": {
+      "kage_def": "まだ存在しない未来を直感し、動きながら形にしていく、変化と越境と突破の力です。",
+      "shadow_tags": "・まず動いて道をつくる\n・境界の外へ踏み出す\n・停滞に新しい流れを入れる",
+      "_src": "draft"
+    },
+    "suzaku": {
+      "kage_def": "共感と熱量と関係性を通じて、人を本気で動かし、組織に「ともに進む文化」をつくる力です。",
+      "shadow_tags": "・共感で人を本気にする\n・熱量と文化で組織を一体化する\n・関係性を成果につなげる",
+      "_src": "draft"
+    },
+    "genbu": {
+      "kage_def": "次々に生まれる成果や動きを「続けられる形」に変え、再現性ある仕組みとして積み上げる力です。",
+      "shadow_tags": "・仕組みで再現できる形をつくる\n・継続と改善を積み重ねる\n・属人化から組織の力へ変える",
+      "_src": "draft"
+    }
+  },
+  "combo_master": {
+    "seiryu_suzaku": {
+      "fv_desc": "新しい世界を構想し、誰より早く動き出す組織。その勢いが人を動かす熱量と結びついたとき、組織全体が同じ方向に動き出します。",
+      "shadow_sub": "青龍の勢いを、人が動く熱量に変える存在",
+      "shadow_lead": "朱雀は、人の想いに火をつけ、熱量で人を動かす力です。青龍の強い組織で、この朱雀が弱いと──",
+      "shadow_symptoms": "▸トップの考えが翻訳されず、現場に届かない\n▸トップの熱量だけが先に走り、現場の気持ちが置き去りになる\n▸ビジョンは語られるのに、人が本気で動かない",
+      "shadow_bridge": "そこで必要になるのが、今回の影神である朱雀です。朱雀は、青龍のスピードを止める力ではありません。",
+      "shadow_growth": "青龍型組織が次に成長するためには、朱雀を取り込む必要があります。では、青龍の強みを失わずに、どうやって朱雀を取り込めばよいのでしょうか。",
+      "page_end_change": "朱雀が入ると、御社の景色はこう変わります──指示で動いていた組織が、共鳴して動き出す。その道筋の描き方が、この先です。",
+      "case1": "【見出し】トップは見えている。でも、みんなには見えていない。\n【BEFORE 青龍が強く、朱雀が弱いと】構想がトップの頭の中だけにある／「なぜやるか」を語らず、指示だけが飛ぶ／青龍の速さに、現場がついていけない／玄武・白虎タイプには、その発想が理解できない／組織とトップの間に、距離が生まれる／気づけば、トップが一人で走って孤立する\n（朱雀は、トップのスピードを止める存在ではありません。）\n【AFTER 朱雀の視点が入ると】トップの構想を、みんなの言葉に翻訳する／「なぜやるか」を物語として伝える／青龍の発想と現場の間に、橋をかける／共感で、一人ひとりを本気にする／熱を、組織全体に伝播させる／トップの孤独を、みんなの熱に変える\n【締め】青龍は未来を描く。朱雀は、その未来をみんなの心に灯す。／描くだけでは人は動かない。伝わって、はじめて動く。／この2つが噛み合うと、“トップだけが熱い”が“組織ごと動く”に変わる。",
+      "case2": "【橋渡し】構想だけではありません。新しい取り組みでも、同じことが起きます。\n【見出し】号令はかかる。でも、現場が動かない。\n【BEFORE 青龍が強く、朱雀が弱いと】新しい方針が次々に下りてくる／背景や意味は共有されない／現場は「また変わった」と冷める／言われたからやる、の受け身になる／トップの熱と現場の温度差が開く／良い構想も、現場で失速する\n【AFTER 朱雀の視点が入ると】変える理由を、現場と分かち合う／キーになる人を巻き込み、味方にする／不安や反発を、対話で受け止める／現場が自分ごとにできる伝え方をする\n【VS】「上から動かす」ではなく／「現場が動きたくなる」へ。\n【＋玄武の視点】動き出しを仕組みで支える／定着する形にする／一過性で終わらせない\n【締め】青龍だけなら、号令倒れになる。／朱雀が入れば現場が動き、玄武が入れば、その動きが定着する。",
+      "checklist": "・どの構想から、まず現場に“意味”を共有するのか\n・誰が朱雀の役割を組織の中で担うのか\n・青龍の強みを失わずに、どう朱雀と噛み合わせるのか\n・熱量を、どう組織に残していくのか",
+      "_src": "draft",
+      "sample_pct": {
+        "seiryu": 40,
+        "suzaku": 12,
+        "byakko": 30,
+        "genbu": 18
+      }
+    },
+    "seiryu_byakko": {
+      "fv_desc": "新しい世界を構想し、誰より早く動き出す組織。その勢いがやり切る力と結びついたとき、さらに大きな成果に変わります。",
+      "shadow_sub": "青龍の勢いを、成果に変える存在",
+      "shadow_lead": "白虎は、勝てる一点を見極め、決めてやり切らせる力です。青龍の強い組織で、この白虎が弱いと──",
+      "shadow_symptoms": "▸案件は増えるのに、どれも収益にならない\n▸社長だけが前へ進み、社員の心は離れていく\n▸動いた分が、会社に何も積み上がらない",
+      "shadow_bridge": "そこで必要になるのが、今回の影神である白虎です。白虎は、青龍のスピードを止める力ではありません。",
+      "shadow_growth": "青龍型組織が次に成長するためには、白虎を取り込む必要があります。では、青龍の強みを失わずに、どうやって白虎を取り込めばよいのでしょうか。",
+      "page_end_change": "白虎が入ると、御社の景色はこう変わります──走り出した案件が、止まらずに収益になる。その道筋の描き方が、この先です。",
+      "case1": "【見出し】全部やる。だから、全部が中途半端になる。\n【BEFORE 青龍だけで走ると】重要案件が5つある／どれも可能性がある／全部、経営会議で話す／全部、予算が欲しい／全部、現場に指示が飛ぶ／結果、全部が中途半端になる\n（白虎は、アイデアを減らす存在ではありません。）\n【AFTER 白虎が入ると】A 最優先で勝ち切る案件：経営会議で扱う／予算をつける／マイルストーンを置く／ゴールを明確にする ｜ B まだ検証段階：月1回だけ報告／大きな予算はまだつけない／検証項目だけ決める ｜ C ネタとして温める：経営会議では扱わない／担当者が情報収集を続ける／可能性を消さずに軽く持つ\n【締め】全部やめる必要はありません。でも、全部を同じ重さで扱ってはいけません。／青龍は可能性を広げる。白虎は、経営資源の重みづけをする。／この2つが噛み合うと、挑戦を止めずに、成果へ向かえるようになります。",
+      "case2": "【橋渡し】案件だけではありません。採用でも、同じことが起きます。\n【見出し】「いい人だから採る」が、一番高くつく。\n【BEFORE 青龍だけで採用すると】いい人に出会う／とりあえず採用する／何を任せるかは後で考える／役割も、成果基準も曖昧になる／本人も力を出し切れず、退職する／またゼロから採用する\n【AFTER 白虎の視点が入ると】まず、強化したい組織機能を決める／本当に採用が必要か考える／外部プロか外注か社内教育か採用か／採用するなら、役割と成果基準を明確にする\n【VS】「いい人だから採る」ではなく／「この役割が必要だから採る」へ。\n【＋玄武の視点】その人が成果を出す／やり方を仕組みにする／次の人が引き継げる／人が辞めても会社に残る\n【締め】青龍だけなら、人が辞ければゼロに戻る。白虎が入れば必要な人を活かせ、玄武が入れば、その力が会社に残ります。",
+      "checklist": "・どの案件を、今期本当に勝ち切るA案件にするのか\n・誰が白虎の役割を担うのか\n・社長の構想を、どう勝ち切る案件と検証案件に分けるのか\n・成果をどう再現性として残すのか",
+      "_src": "mock",
+      "sample_pct": {
+        "seiryu": 40,
+        "suzaku": 30,
+        "byakko": 12,
+        "genbu": 18
+      }
+    },
+    "seiryu_genbu": {
+      "fv_desc": "新しい世界を構想し、誰より早く動き出す組織。その勢いが続ける仕組みと結びついたとき、一度きりの成果が、続く力に変わります。",
+      "shadow_sub": "青龍の勢いを、続く仕組みに変える存在",
+      "shadow_lead": "玄武は、やり方を型にして、人に頼らず再現する力です。青龍の強い組織で、この玄武が弱いと──",
+      "shadow_symptoms": "▸挑戦は続くのに、成果が再現できない\n▸立ち上げは早いのに、仕組みとして定着しない\n▸勢いはあるが、リスクの見極めが甘くなる",
+      "shadow_bridge": "そこで必要になるのが、今回の影神である玄武です。玄武は、青龍の動きを縛る力ではありません。",
+      "shadow_growth": "青龍型組織が次に成長するためには、玄武を取り込む必要があります。では、青龍の強みを失わずに、どうやって玄武を取り込めばよいのでしょうか。",
+      "page_end_change": "玄武が入ると、御社の景色はこう変わります──一度きりの成果が、再現できる仕組みになる。その道筋の描き方が、この先です。",
+      "case1": "【見出し】次々立ち上げる。でも、何も残らない。\n【BEFORE 青龍が強く、玄武が弱いと】アイデアを次々に立ち上げる／形になる前に、次の構想へ移る／やり方が個人の頭の中にしかない／成功しても、なぜ勝てたかが残らない／人が抜けると、ノウハウごと消える／毎回ゼロから、また立ち上げ直す\n（玄武は、青龍の挑戦を止める存在ではありません。）\n【AFTER 玄武の視点が入ると】立ち上げたものを、型・仕組みにする／勝ち方を言語化し、再現できるようにする／属人的なノウハウを、組織の資産に移す／改善を積み重ね、精度を上げる／人が代わっても回る状態にする／一発の挑戦を、続く成長の力に変える\n【締め】青龍は種をまく。玄武は、それを育つ畑にする。／まくだけでは実らない。仕組みが、実らせる。／この2つが噛み合うと、“打ち上げ花火”が“積み上がる力”に変わる。",
+      "case2": "【橋渡し】立ち上げだけではありません。リスクの見極めでも、同じことが起きます。\n【見出し】面白いから走る。でも、足元に穴がある。\n【BEFORE 青龍が強く、玄武が弱いと】前を見て、面白いことに飛びつく／リスクの検討は、後回しにする／「やってみないと分からない」で進める／法や品質の詰めが、甘くなる／出してから、クレームや不備が噴き出す／勢いのツケを、後で払わされる\n【AFTER 玄武の視点が入ると】挑戦の前に、リスクを構造で見極める／法・品質・運用の穴を、先に潰す／守るべき一線を、決めておく／攻めながらも、足元を固める\n【VS】「まず動く」だけでなく／「致命傷になる穴だけ、先に潰して動く」へ。\n【＋白虎の視点】どこで勝つかを絞る／勝ち筋に資源を集中する／成果につながる挑戦を選ぶ\n【締め】青龍だけなら、勢いで穴を踏む。／玄武が入れば足元が固まり、白虎が入れば、その挑戦が成果になる。",
+      "checklist": "・どの成功パターンを、まず会社の型として残すのか\n・誰が玄武の役割を組織の中で担うのか\n・青龍の強みを失わずに、どう玄武と噛み合わせるのか\n・再現性を、どう組織に残していくのか",
+      "_src": "draft",
+      "sample_pct": {
+        "seiryu": 40,
+        "suzaku": 30,
+        "byakko": 18,
+        "genbu": 12
+      }
+    },
+    "suzaku_seiryu": {
+      "fv_desc": "人の想いに火をつけ、関係性で人を束ねる組織。その熱量が変化を生む力と結びついたとき、止まっていた組織に新しい流れが生まれます。",
+      "shadow_sub": "朱雀の想いを、新しい挑戦に変える存在",
+      "shadow_lead": "青龍は、まだ見ぬ未来へ、まず動いて道をひらく力です。朱雀の強い組織で、この青龍が弱いと──",
+      "shadow_symptoms": "▸みんなの意見を聞くと、無難なものしか出ない\n▸和を守るあまり、とんがった一手が消える\n▸まとまってはいるが、状況を打破できない",
+      "shadow_bridge": "そこで必要になるのが、今回の影神である青龍です。青龍は、朱雀の和を壊す力ではありません。",
+      "shadow_growth": "朱雀型組織が次に成長するためには、青龍を取り込む必要があります。では、朱雀の強みを失わずに、どうやって青龍を取り込めばよいのでしょうか。",
+      "page_end_change": "青龍が入ると、御社の景色はこう変わります──止まっていた組織に、新しい挑戦が生まれ始める。その道筋の描き方が、この先です。",
+      "case1": "【見出し】みんなの意見でまとめる。だから、とんがらない。\n【BEFORE 朱雀が強く、青龍が弱いと】企画を、みんなの意見で決める／尖った案は「リスクが高い」と削られる／全員が納得する、無難な形に落ち着く／どこかで見たような打ち手になる／差別化できず、埋もれる／状況を打破する一手が、出ない\n（青龍は、和を壊すためにいるのではありません。）\n【AFTER 青龍の視点が入ると】合意より、可能性で一手を選ぶ／反対があっても、可能性があるなら小さく試す／前例のない領域へ、まず踏み出す／とんがりを、あえて残す／状況を、こちらから動かしにいく／「無難」を、「新しい」で破る\n【締め】朱雀はみんなを一つにする。青龍は、その一つを前に突き動かす。／全員一致は心地よい。でも、突き抜けない。／この2つが噛み合うと、“まとまるけど無難”が“まとまって、尖る”に変わる。",
+      "case2": "【橋渡し】企画だけではありません。変化の決断でも、同じことが起きます。\n【見出し】全員が納得するまで待つ。だから、動けない。\n【BEFORE 朱雀が強く、青龍が弱いと】全員の合意を待ってから動く／反対する人がいると、進めない／変化には、必ずためらいが出る／「今のままでいい」が優先される／気づけば、周りに先を越されている／守っているうちに、じり貧になる\n【AFTER 青龍の視点が入ると】完璧な合意を待たず、まず動く／変化を、こちらから仕掛ける／新しい挑戦で、停滞を破る／動きながら、みんなを巻き込む\n【VS】「全員が納得してから」ではなく／「動きながら、納得をつくる」へ。\n【＋玄武の視点】仕掛けた変化を、続く形にする／勢いを、仕組みで定着させる／一過性で終わらせない\n【締め】朱雀だけなら、動けずじり貧。／青龍が入れば動き出し、玄武が入れば、その動きが定着する。",
+      "checklist": "・どのテーマで、合意より先に小さな挑戦を始めるのか\n・誰が青龍の役割を組織の中で担うのか\n・朱雀の強みを失わずに、どう青龍と噛み合わせるのか\n・挑戦を、どう組織に残していくのか",
+      "_src": "draft",
+      "sample_pct": {
+        "seiryu": 12,
+        "suzaku": 40,
+        "byakko": 30,
+        "genbu": 18
+      }
+    },
+    "suzaku_byakko": {
+      "fv_desc": "人の想いに火をつけ、関係性で人を束ねる組織。その熱量がやり切る力と結びついたとき、さらに大きな成果に変わります。",
+      "shadow_sub": "朱雀の想いを、成果に変える存在",
+      "shadow_lead": "白虎は、勝てる一点を見極め、決めてやり切らせる力です。朱雀の強い組織で、この白虎が弱いと──",
+      "shadow_symptoms": "▸頑張りは評価されるのに、成果が伸びない\n▸みんな平等の空気で、実力者が動きにくい\n▸厳しい判断ができず、勝ち筋が定まらない",
+      "shadow_bridge": "そこで必要になるのが、今回の影神である白虎です。白虎は、朱雀の温かさを壊す力ではありません。",
+      "shadow_growth": "朱雀型組織が次に成長するためには、白虎を取り込む必要があります。では、朱雀の強みを失わずに、どうやって白虎を取り込めばよいのでしょうか。",
+      "page_end_change": "白虎が入ると、御社の景色はこう変わります──走り出した案件が、止まらずに収益になる。その道筋の描き方が、この先です。",
+      "case1": "【見出し】みんな頑張っている。でも、数字がついてこない。\n【BEFORE 朱雀が強く、白虎が弱いと】頑張りや姿勢を評価する／成果より、和や気持ちを優先する／どこで勝つかを、絞りきれない／厳しい判断を、先延ばしにする／全員に配慮して、方向がぼやける／温かいのに、成果が伸びない\n（白虎は、朱雀の温かさを壊す存在ではありません。）\n【AFTER 白虎の視点が入ると】どこで勝つかを、はっきり決める／成果の基準を、明確に置く／勝ち筋に、資源を集中する／やり切って、成果を出す／頑張りを、成果につなげる／温かさに、勝つ強さを加える\n【締め】朱雀は人を動かす。白虎は、その力を成果に変える。／優しさは、成果があってこそ続く。／この2つが噛み合うと、“温かいけど伸びない”が“温かくて、勝てる”に変わる。",
+      "case2": "【橋渡し】成果だけではありません。実力者の活かし方でも、同じことが起きます。\n【見出し】みんな平等。でも、本物のプロが去っていく。\n【BEFORE 朱雀が強く、白虎が弱いと】みんなの意見を平等に扱う／突出した人にも、横並びを求める／成果を出すプロ人材が、力を発揮しにくい／「周りに合わせて」が、実力者にはぬるい／腕一本の人が、物足りず離れていく／本当に取ってこれる人が、根づかない\n【AFTER 白虎の視点が入ると】実力で勝負できる場をつくる／成果を出す人を、正当に評価する／プロには、裁量と責任を渡す／横並びより、勝ち筋を優先する\n【VS】「みんな平等に」だけでなく／「実力が、正当に報われる」へ。\n【＋玄武の視点】その評価を、基準・仕組みとして残す／属人的な判断にしない／誰にも公平な物差しにする\n【締め】朱雀だけなら、実力者がぬるさで去る。／白虎が入れば実力が活き、玄武が入れば、その基準が組織に残る。",
+      "checklist": "・どの仕事に、成果基準をはっきり置くのか\n・誰が白虎の役割を組織の中で担うのか\n・朱雀の強みを失わずに、どう白虎と噛み合わせるのか\n・やり切る力を、どう組織に残していくのか",
+      "_src": "draft",
+      "sample_pct": {
+        "seiryu": 30,
+        "suzaku": 40,
+        "byakko": 12,
+        "genbu": 18
+      }
+    },
+    "suzaku_genbu": {
+      "fv_desc": "人の想いに火をつけ、関係性で人を束ねる組織。その熱量が続ける仕組みと結びついたとき、一度きりの成果が、続く力に変わります。",
+      "shadow_sub": "朱雀の想いを、続く仕組みに変える存在",
+      "shadow_lead": "玄武は、やり方を型にして、人に頼らず再現する力です。朱雀の強い組織で、この玄武が弱いと──",
+      "shadow_symptoms": "▸熱量はあるのに、続く仕組みにならない\n▸人に依存し、担当が変わると回らない\n▸良い取り組みが、属人的なまま消えていく",
+      "shadow_bridge": "そこで必要になるのが、今回の影神である玄武です。玄武は、朱雀の個性を消す力ではありません。",
+      "shadow_growth": "朱雀型組織が次に成長するためには、玄武を取り込む必要があります。では、朱雀の強みを失わずに、どうやって玄武を取り込めばよいのでしょうか。",
+      "page_end_change": "玄武が入ると、御社の景色はこう変わります──一度きりの成果が、再現できる仕組みになる。その道筋の描き方が、この先です。",
+      "case1": "【見出し】みんなのやり方を尊重する。だから、バラバラになる。\n【BEFORE 朱雀が強く、玄武が弱いと】巻き込むために、みんなの意見を尊重する／人それぞれのやり方を許してしまう／「このやり方は苦手」と言われると、通してしまう／やり方が人ごとにバラバラで連携できない／忙しい時に噛み合わず、現場が回らない\n（玄武は、意見を切り捨てる存在ではありません。ヒアリングはします。）\n【AFTER 玄武の視点が入ると】聞いた上で、最後は「会社としての標準」を決める／例外を残しすぎず、誰でも同じ品質でできる型にする／トレーニング計画をつくり、無理なく型を身につける／忙しい時でも噛み合うオペレーションに整える\n【締め】朱雀はみんなの気持ちを大切にする。玄武はみんなが同じ品質で動ける形をつくる。／自由に見える現場ほど、実は裏のやり方が作り込まれている。／この2つが噛み合うと、“温かいけどバラバラ”が“温かくて、崩れない”に変わる。",
+      "case2": "【橋渡し】やり方だけではありません。人の育て方でも、同じことが起きます。\n【見出し】一人ひとりに合わせる。だから、育ち方がバラつく。\n【BEFORE 朱雀が強く、玄武が弱いと】その人の個性や気持ちに合わせて育てる／「これは苦手」と言われれば、無理させない／育て方が担当や状況でバラバラ／何ができれば一人前か、基準がない／伸びる人と伸びない人の差が開く\n【AFTER 玄武の視点が入ると】「一人前の型」を先に定義する／全員が通る標準カリキュラムをつくる／苦手な部分も、段階的なトレーニングで身につけられるようにする／時間をかけて、必要な水準まで育てていく\n【VS】「その人に合わせて育てる」だけでなく／「会社の型で、確実に育て切る」へ。\n【＋白虎の視点】育成のゴールを成果で定義する／数字で一人前を測る／現場で鍛えて成果につなげる／勝てる基準まで引き上げる\n【締め】朱雀だけなら育ち方は人任せ。玄武が入れば全員が型で育ち、白虎が入れば、その育成が成果につながる。",
+      "checklist": "・どの業務を、人任せではなく会社の標準に変えるのか\n・誰が玄武の役割を組織の中で担うのか\n・朱雀の強みを失わずに、どう玄武と噛み合わせるのか\n・再現性を、どう組織に残していくのか",
+      "_src": "draft",
+      "sample_pct": {
+        "seiryu": 30,
+        "suzaku": 40,
+        "byakko": 18,
+        "genbu": 12
+      }
+    },
+    "byakko_seiryu": {
+      "fv_desc": "勝てる領域を見極め、決めたことをやり切る組織。その集中が変化を生む力と結びついたとき、止まっていた組織に新しい流れが生まれます。",
+      "shadow_sub": "白虎の勝ち筋を、新しい挑戦に変える存在",
+      "shadow_lead": "青龍は、まだ見ぬ未来へ、まず動いて道をひらく力です。白虎の強い組織で、この青龍が弱いと──",
+      "shadow_symptoms": "▸今の稼ぎは強いのに、次の芽を育てていない\n▸「金にならない」と、新しい挑戦を切ってしまう\n▸刈り取るものが、少しずつ先細っていく",
+      "shadow_bridge": "そこで必要になるのが、今回の影神である青龍です。青龍は、白虎の集中を乱す力ではありません。",
+      "shadow_growth": "白虎型組織が次に成長するためには、青龍を取り込む必要があります。では、白虎の強みを失わずに、どうやって青龍を取り込めばよいのでしょうか。",
+      "page_end_change": "青龍が入ると、御社の景色はこう変わります──止まっていた組織に、新しい挑戦が生まれ始める。その道筋の描き方が、この先です。",
+      "case1": "【見出し】今は稼げる。でも、次の柱がない。\n【BEFORE 白虎が強く、青龍が弱いと】今、数字になることに集中する／すぐ成果にならない挑戦は切り捨てる／不確実な種まきを、ムダと感じる／既存の勝ち筋を、刈り取り続ける／新しい芽が、生まれも育ちもしない／気づけば、刈り取るものが先細る\n（青龍は、刈り取りを否定する存在ではありません。）\n【AFTER 青龍の視点が入ると】次の柱になる種を、今からまく／物になるか分からない挑戦に、枠を割く／未来の市場へ、先に踏み出す／小さく試して、可能性を探る／刈り取りの隣で、次の芽を育てる／今の成果を、未来への投資に回す\n【締め】白虎は実った畑を刈り取る。青龍は、次の畑に種をまく。／刈り取るだけでは、いつか刈るものがなくなる。／この2つが噛み合うと、“今は稼げる”が“ずっと稼げる”に変わる。",
+      "case2": "【橋渡し】事業だけではありません。挑戦の文化でも、同じことが起きます。\n【見出し】確実なものだけやる。だから、挑戦が消える。\n【BEFORE 白虎が強く、青龍が弱いと】確実に成果が出ることだけやる／失敗しそうな挑戦は、認めない／「数字にならない」で、芽を摘む／現場も、無難な提案しかしなくなる／挑戦する人が、報われず去っていく／組織から、攻めの発想が消える\n【AFTER 青龍の視点が入ると】成果に直結しない挑戦にも、場を与える／失敗を、次への学びとして扱う／「面白い」を、判断に入れる／新しい発想の人を、引き上げる\n【VS】「確実だからやる」だけでなく／「可能性があるから、やってみる」へ。\n【＋玄武の視点】生まれた挑戦を、再現できる形にする／うまくいった芽を、仕組みで育てる／一度きりで終わらせない\n【締め】白虎だけなら、攻めが消える。／青龍が入れば挑戦が生まれ、玄武が入れば、その挑戦が積み上がる。",
+      "checklist": "・どの既存事業の隣に、次の柱の種をまくのか\n・誰が青龍の役割を組織の中で担うのか\n・白虎の強みを失わずに、どう青龍と噛み合わせるのか\n・挑戦を、どう組織に残していくのか",
+      "_src": "draft",
+      "sample_pct": {
+        "seiryu": 12,
+        "suzaku": 30,
+        "byakko": 40,
+        "genbu": 18
+      }
+    },
+    "byakko_suzaku": {
+      "fv_desc": "勝てる領域を見極め、決めたことをやり切る組織。その集中が人を動かす熱量と結びついたとき、組織全体が同じ方向に動き出します。",
+      "shadow_sub": "白虎の勝ち筋を、人が動く熱量に変える存在",
+      "shadow_lead": "朱雀は、人の想いに火をつけ、熱量で人を動かす力です。白虎の強い組織で、この朱雀が弱いと──",
+      "shadow_symptoms": "▸少数精鋭で回すから、事業が広がらない\n▸プロとスタッフの間に、分断が生まれる\n▸実力はあるのに、顧客や仲間に価値が伝わりきらない",
+      "shadow_bridge": "そこで必要になるのが、今回の影神である朱雀です。朱雀は、白虎の基準を甘くする力ではありません。",
+      "shadow_growth": "白虎型組織が次に成長するためには、朱雀を取り込む必要があります。では、白虎の強みを失わずに、どうやって朱雀を取り込めばよいのでしょうか。",
+      "page_end_change": "朱雀が入ると、御社の景色はこう変わります──指示で動いていた組織が、共鳴して動き出す。その道筋の描き方が、この先です。",
+      "case1": "【見出し】精鋭が回す。でも、周りがしらける。\n【BEFORE 白虎が強く、朱雀が弱いと】少数精鋭が、全部決めて動かす／周りは、何をどう手伝えばいいか分からない／プロとスタッフの間に、壁ができる／現場は指示待ちで、当事者になれない／顧客対応が、一部の人に集中する／その人がいないと、現場が回らない\n（朱雀は、白虎の精鋭を否定する存在ではありません。）\n【AFTER 朱雀の視点が入ると】現場を巻き込み、役割を渡す／プロの動きを、みんなに翻訳して共有する／スタッフが当事者になれる場をつくる／顧客の声を、広く拾って回す／分断を、関係性で埋める／精鋭の強さを、組織全体に広げる\n【締め】白虎は精鋭を尖らせる。朱雀は、その力を組織に行き渡らせる。／一部が強いだけでは、広がらない。／この2つが噛み合うと、“精鋭が回す”が“みんなで回す”に変わる。",
+      "case2": "【橋渡し】社内だけではありません。外への広がりでも、同じことが起きます。\n【見出し】分かる人には分かる。でも、そこで止まる。\n【BEFORE 白虎が強く、朱雀が弱いと】実力があれば伝わる、と考える／実力を磨くことに集中し、自分たちからは発信しない／良いものなのに、知られていない／新しい顧客との接点が、広がらない／勝てる一点の外に、届かない／実力はあるのに、認知が頭打ちになる\n【AFTER 朱雀の視点が入ると】現場や日常を、外に発信する／発信で、人を惹きつける／広く声を拾い、新しいネタを取ってくる／関係性を、面で広げる\n【VS】「分かる人が見つけてくれる」ではなく／「こちらから、広く届ける」へ。\n【＋青龍の視点】拾ったネタを、新しい事業として立ち上げる／広がった接点を、次の柱に育てる／認知を、成長の起点に変える\n【締め】白虎だけなら、実力が埋もれる。／朱雀が入れば広く伝わり、青龍が入れば、それが新しい事業になる。",
+      "checklist": "・どの強みを、顧客や現場に伝わる言葉へ翻訳するのか\n・誰が朱雀の役割を組織の中で担うのか\n・白虎の強みを失わずに、どう朱雀と噛み合わせるのか\n・熱量を、どう組織に残していくのか",
+      "_src": "draft",
+      "sample_pct": {
+        "seiryu": 30,
+        "suzaku": 12,
+        "byakko": 40,
+        "genbu": 18
+      }
+    },
+    "byakko_genbu": {
+      "fv_desc": "勝てる領域を見極め、決めたことをやり切る組織。その集中が続ける仕組みと結びついたとき、一度きりの成果が、続く力に変わります。",
+      "shadow_sub": "白虎の勝ち筋を、続く仕組みに変える存在",
+      "shadow_lead": "玄武は、やり方を型にして、人に頼らず再現する力です。白虎の強い組織で、この玄武が弱いと──",
+      "shadow_symptoms": "▸成果は出るのに、毎回ゼロから作り直している\n▸勝ち方が属人的で、人が抜けると崩れる\n▸走り切る力はあるのに、蓄積が残らない",
+      "shadow_bridge": "そこで必要になるのが、今回の影神である玄武です。玄武は、白虎の勝ち方を縛る力ではありません。",
+      "shadow_growth": "白虎型組織が次に成長するためには、玄武を取り込む必要があります。では、白虎の強みを失わずに、どうやって玄武を取り込めばよいのでしょうか。",
+      "page_end_change": "玄武が入ると、御社の景色はこう変わります──一度きりの成果が、再現できる仕組みになる。その道筋の描き方が、この先です。",
+      "case1": "【見出し】数字は取れる。でも、売った後で崩れる。\n【BEFORE 白虎が強く、玄武が弱いと】判断はいつも「数字になるか」／勝てる・売れる打ち手に一気に寄せる／商品やサービスの作り込みは後回し／オペレーションは「出しながら直す」／売った後（運用・アフター）の設計は詰めない／数字は出る。でも売った後や繁忙期に無理が出る\n（玄武は、スピードを止める存在ではありません。）\n【AFTER 玄武の視点が入ると】「売った後どうなるか」まで先に設計する／アフター対応や運用フローを描いておく／忙しい時でも回る仕組みにしておく／売り方だけでなく、提供後の運用・品質まで設計する／勝ち方を型にして、再現できる形で残す／効率に流されず、質と持続性を担保する\n【締め】白虎は刈り取る。玄武は、刈り取った後も回る形に作り込む。／白虎が「数字を取る力」なら、玄武は「取った数字を崩さない力」。／この2つが噛み合うと、“売って終わり”が“続く成果”に変わる。",
+      "case2": "【橋渡し】事業だけではありません。人の育て方でも、同じことが起きます。\n【見出し】精鋭は育つ。でも、その人が抜けたら終わる。\n【BEFORE 白虎が強く、玄武が弱いと】少数精鋭を鍛え上げて成果を出す／強さが「鍛えた個人」に宿る／育てるのに時間がかかる／やり方がその人の中にあり、言語化されない／その人が抜けると、勝ち方ごと消える\n【AFTER 玄武の視点が入ると】鍛えて得た勝ち方を、ルール・型にする／人に宿る強さを、仕組みに移す／誰が入っても再現できる道筋をつくる／属人的な強さを、組織の資産に変える\n【VS】「あの人が強い」ではなく／「誰が入っても強い」へ。\n【＋朱雀の視点】その人をチームに深くつなぐ／想いを共有し文化に馴染ませる／関係性で長く活躍してもらう／辞めない理由を人でつくる\n【締め】白虎は人を鍛えて強くする。玄武は、その強さを人から仕組みへ移す。／白虎だけなら精鋭が抜けたら崩れ、玄武が入れば再現でき、朱雀が入れば人が根づく。",
+      "checklist": "・どの勝ち方を、特定の人に頼らず再現できる型にするのか\n・誰が玄武の役割を組織の中で担うのか\n・白虎の強みを失わずに、どう玄武と噛み合わせるのか\n・再現性を、どう組織に残していくのか",
+      "_src": "draft",
+      "sample_pct": {
+        "seiryu": 30,
+        "suzaku": 18,
+        "byakko": 40,
+        "genbu": 12
+      }
+    },
+    "genbu_seiryu": {
+      "fv_desc": "仕組みと再現性で、崩れず回し続ける組織。その安定が変化を生む力と結びついたとき、止まっていた組織に新しい流れが生まれます。",
+      "shadow_sub": "玄武の仕組みを、新しい挑戦に変える存在",
+      "shadow_lead": "青龍は、まだ見ぬ未来へ、まず動いて道をひらく力です。玄武の強い組織で、この青龍が弱いと──",
+      "shadow_symptoms": "▸整え続けるうちに、新しい領域へ出られない\n▸完成度は上がるのに、変化に乗り遅れる\n▸守りが固いほど、次の一手を避けてしまう",
+      "shadow_bridge": "そこで必要になるのが、今回の影神である青龍です。青龍は、玄武の秩序を壊す力ではありません。",
+      "shadow_growth": "玄武型組織が次に成長するためには、青龍を取り込む必要があります。では、玄武の強みを失わずに、どうやって青龍を取り込めばよいのでしょうか。",
+      "page_end_change": "青龍が入ると、御社の景色はこう変わります──止まっていた組織に、新しい挑戦が生まれ始める。その道筋の描き方が、この先です。",
+      "case1": "【見出し】完成度は上がる。でも、次の波に乗り遅れる。\n【BEFORE 玄武が強く、青龍が弱いと】既存の仕組みを、磨き続ける／完成度は着実に上がる／でも、新しい領域には出ていかない／前例のない挑戦を、リスクとして避ける／世の中が変わっても、既存を守る／気づけば、新しい流れに乗り遅れる\n（青龍は、積み上げた仕組みを壊す存在ではありません。）\n【AFTER 青龍の視点が入ると】整えた土台の外へ、踏み出す／新しい領域に、まず種をまく／前例のない市場を、切り開く／変化の波を、こちらから起こす／既存の強みを、次の場所に持ち込む／守りの堅さに、攻めの一手を足す\n【締め】玄武は崩れない土台をつくる。青龍は、その土台で次へ挑む。／守り続けるだけでは、時代に置いていかれる。／この2つが噛み合うと、“整うけど古びる”が“整えて、進化し続ける”に変わる。",
+      "case2": "【橋渡し】事業だけではありません。発想でも、同じことが起きます。\n【見出し】改善は得意。でも、変革が起きない。\n【BEFORE 玄武が強く、青龍が弱いと】今あるものを、少しずつ良くする／大きく変える発想が、出てこない／「今のやり方」を前提に考える／破壊的なアイデアは、否定される／改善の先に、頭打ちが来る／連続の改善では、非連続に勝てない\n【AFTER 青龍の視点が入ると】前提そのものを、問い直す／非連続な一手を、仕掛ける／新しいモデルを、ゼロから描く／変化を、脅威でなく機会にする\n【VS】「今を改善する」だけでなく／「次を創り出す」へ。\n【＋白虎の視点】新しい領域で、どこで勝つかを絞る／挑戦を、成果につなげる／勝てる形に育てる\n【締め】玄武だけなら、改善の先で頭打ち。／青龍が入れば次を創り、白虎が入れば、その新領域で勝てる。",
+      "checklist": "・どの既存事業の外側に、次の挑戦の種をまくのか\n・誰が青龍の役割を組織の中で担うのか\n・玄武の強みを失わずに、どう青龍と噛み合わせるのか\n・挑戦を、どう組織に残していくのか",
+      "_src": "draft",
+      "sample_pct": {
+        "seiryu": 12,
+        "suzaku": 30,
+        "byakko": 18,
+        "genbu": 40
+      }
+    },
+    "genbu_suzaku": {
+      "fv_desc": "仕組みと再現性で、崩れず回し続ける組織。その安定が人を動かす熱量と結びついたとき、組織全体が同じ方向に動き出します。",
+      "shadow_sub": "玄武の仕組みを、人が動く熱量に変える存在",
+      "shadow_lead": "朱雀は、人の想いに火をつけ、熱量で人を動かす力です。玄武の強い組織で、この朱雀が弱いと──",
+      "shadow_symptoms": "▸正しく作った仕組みが、現場で使われない\n▸整合性を優先しすぎて、現場の実態とズレる\n▸ルールは正しいのに、人の気持ちが置き去りになる",
+      "shadow_bridge": "そこで必要になるのが、今回の影神である朱雀です。朱雀は、玄武の仕組みを崩す力ではありません。",
+      "shadow_growth": "玄武型組織が次に成長するためには、朱雀を取り込む必要があります。では、玄武の強みを失わずに、どうやって朱雀を取り込めばよいのでしょうか。",
+      "page_end_change": "朱雀が入ると、御社の景色はこう変わります──指示で動いていた組織が、共鳴して動き出す。その道筋の描き方が、この先です。",
+      "case1": "【見出し】正しい仕組みをつくる。でも、現場で使われない。\n【BEFORE 玄武が強く、朱雀が弱いと】「正しさ」を追って仕組みを作り込む／こだわりが強く、理詰めで固める／現場の声を十分に聞かず下ろす／理屈は正しいのに、現場の実態と合わない／使いにくくて、結局使われない／正しい仕組みが、机上で終わる\n（朱雀は、仕組みを崩す存在ではありません。）\n【AFTER 朱雀の視点が入ると】作る前に、現場の声を聞く／使う人の気持ちと実態を織り込む／「正しい」より「使える」を優先する／現場を巻き込みながら仕組みをつくる／納得感があるから、みんなが使う／仕組みに、人の体温を通わせる\n【締め】玄武は正しい形をつくる。朱雀は、それを人が使える形にする。／正しくても、使われなければ意味がない。／この2つが噛み合うと、“正しい仕組み”が“回る仕組み”に変わる。",
+      "case2": "【橋渡し】仕組みだけではありません。ルールの運用でも、同じことが起きます。\n【見出し】ルールは正しい。でも、現場が冷める。\n【BEFORE 玄武が強く、朱雀が弱いと】正しいルールを整え、徹底する／なぜやるかより、決まりだからで下ろす／現場の気持ちを聞かずに運用する／守らせることが目的になる／ルールは回るのに、熱が冷めていく／言われたことはやるが、それ以上はやらない\n【AFTER 朱雀の視点が入ると】ルールの「なぜ」を語り、腹落ちさせる／現場の想いを聞き、一緒に運用を育てる／守らせるより、やりたくなる空気をつくる／仕組みに、人のつながりを添える\n【VS】「決まりだから守る」ではなく／「意味が分かるから、動く」へ。\n【＋白虎の視点】その運用を成果につなげる／数字で効果を見せる／成果が出るから、続く\n【締め】玄武だけなら、正しくても冷める。／朱雀が入れば人が動き、白虎が入れば、その動きが成果になる。",
+      "checklist": "・どの仕組みを、現場が使いたくなる形に直すのか\n・誰が朱雀の役割を組織の中で担うのか\n・玄武の強みを失わずに、どう朱雀と噛み合わせるのか\n・熱量を、どう組織に残していくのか",
+      "_src": "draft",
+      "sample_pct": {
+        "seiryu": 30,
+        "suzaku": 12,
+        "byakko": 18,
+        "genbu": 40
+      }
+    },
+    "genbu_byakko": {
+      "fv_desc": "仕組みと再現性で、崩れず回し続ける組織。その安定がやり切る力と結びついたとき、さらに大きな成果に変わります。",
+      "shadow_sub": "玄武の仕組みを、成果に変える存在",
+      "shadow_lead": "白虎は、勝てる一点を見極め、決めてやり切らせる力です。玄武の強い組織で、この白虎が弱いと──",
+      "shadow_symptoms": "▸完璧を求めて、いつまでもリリースできない\n▸整えるうちに、事業の立ち上げが遅れる\n▸市場に出さないから、反応も成果も取れない",
+      "shadow_bridge": "そこで必要になるのが、今回の影神である白虎です。白虎は、玄武の堅実さを雑にする力ではありません。",
+      "shadow_growth": "玄武型組織が次に成長するためには、白虎を取り込む必要があります。では、玄武の強みを失わずに、どうやって白虎を取り込めばよいのでしょうか。",
+      "page_end_change": "白虎が入ると、御社の景色はこう変わります──走り出した案件が、止まらずに収益になる。その道筋の描き方が、この先です。",
+      "case1": "【見出し】完璧にしてから出す。だから、いつまでも出せない。\n【BEFORE 玄武が強く、白虎が弱いと】「きちんと整えてから」出そうとする／細部までこだわり、完成を待つ／リリースの判断がずっと先送りになる／市場に出ないから、反応が取れない／磨いているのに、当たっているか分からない／気づけば、事業が立ち上がらないまま時間が過ぎる\n（白虎は、雑に出す存在ではありません。）\n【AFTER 白虎の視点が入ると】完璧を待たず、勝てる形でまず出す／市場の反応を見ながら、攻めて絞る／どこで勝つかを決め、そこに寄せる／数字が取れる一点に集中する／出す→反応→改善のスピードを上げる／整える力を、成果を取るために使う\n【締め】玄武は崩れない形をつくる。白虎は出して勝ちにいく。／完璧な準備より、市場が答えを持っている。／この2つが噛み合うと、“整えるだけ”が“整えて、勝つ”に変わる。",
+      "case2": "【橋渡し】商品だけではありません。意思決定でも、同じことが起きます。\n【見出し】石橋を叩く。でも、叩きすぎて渡れない。\n【BEFORE 玄武が強く、白虎が弱いと】確実になるまで動かない／リスクを嫌い、判断を待つ／勝てる機会でも、整うまで見送る／慎重さが、決断の遅さになる／気づけば、勝ち筋を他社に取られている／「正しく待った」結果、機会を逃す\n【AFTER 白虎の視点が入ると】勝てる機会は、整いきる前に取りにいく／どこで勝つかを決め、資源を張る／数字で勝ち筋を見極めて動く／決めたら、やり切って成果にする\n【VS】「確実になってから」ではなく／「勝てるうちに、取りにいく」へ。\n【＋朱雀の視点】決断に、みんなの納得と熱を添える／不安を、一緒に越える空気をつくる／挑戦を、チームで背負う\n【締め】玄武だけなら、正しく待って機会を逃す。／白虎が入れば勝ちにいけ、朱雀が入れば、みんなで勝ちにいける。",
+      "checklist": "・どの案件を、整い切る前に市場へ出して反応を見るのか\n・誰が白虎の役割を組織の中で担うのか\n・玄武の強みを失わずに、どう白虎と噛み合わせるのか\n・やり切る力を、どう組織に残していくのか",
+      "_src": "draft",
+      "sample_pct": {
+        "seiryu": 30,
+        "suzaku": 18,
+        "byakko": 12,
+        "genbu": 40
+      }
+    }
+  },
+  "fixed_texts": {
+    "part1": {
+      "header": "四神診断 ｜ 組織タイプ診断結果",
+      "fv_label": "診断結果",
+      "comp_heading": "御社の 四神構成",
+      "comp_label": "四神構成比",
+      "sw_bridge": "強みと弱みは、別のものではありません。同じ力が強く出すぎたとき、それは弱みになります。",
+      "sw_bridge_label": "強すぎたときに出る弱さ",
+      "wall_question": "──いくつ、御社に心当たりがありましたか。",
+      "shadow_transition_h": "利き神を知るだけでは、組織は変わりません。",
+      "shadow_transition_p": "御社を伸ばしてきた力は見えてきました。では、次に何が必要なのか。本当に重要なのは、影神の理解です。",
+      "shadow_def_h": "御社には、まだ十分に使えていない力があります。",
+      "shadow_def_p": "四神診断では、4つの力のうち最も少ない特性を「影神（シャドウ）」と呼びます。影神は、単なる弱点ではありません。今の強みだけでは越えられない壁を越えるために必要な力です。",
+      "shadow_result_label": "今回の診断結果",
+      "cta": "御社に必要な影神と次の打ち手をLINEで受け取る",
+      "nowmap_h": "このページで分かるのは、御社の現状までです。",
+      "nowmap_p": "今回の診断で分かるのは、御社の組織がどの方向に偏っているか、どこに強みがあり、どの力が不足しやすいか──その「現状の構造」です。",
+      "teaser_intro": "ここから先で、次のことが分かります。",
+      "teaser_items": [
+        "御社の影神が、なぜ今必要なのか",
+        "利き神と影神をどう噛み合わせるのか",
+        "4つの力が噛み合う「完全組織」とは何か"
+      ],
+      "teaser_after": "これらは、LINE登録後すぐにお読みいただけます。",
+      "register": [
+        "登録は無料です",
+        "経営者・組織責任者の方を対象としています",
+        "いつでも解除できます"
+      ]
+    },
+    "line_gate": "── ここでLINE登録（本番では別ページ／別端末）──　※検証用に区切り線で連結",
+    "part2": {
+      "header": "四神診断 ｜ 診断結果の読み解き",
+      "reading01_kicker": "READING ── 01",
+      "reading01_h": "診断結果の読み解き",
+      "reading01_lead": "御社の診断結果は、こうでした。",
+      "reading01_close": "ここからは、この組み合わせが御社の組織で何を意味するのかを読み解いていきます。",
+      "reading06": {
+        "kicker": "READING ── 06",
+        "h": "組織には、必ず矛盾があります。",
+        "sub": "そして多くの会社は、どちらかを選びます。",
+        "trades": [
+          [
+            "仕組みを強めれば、会社は整う。",
+            "けれど、現場の熱が冷える。"
+          ],
+          [
+            "自由を尊重すれば、挑戦は生まれる。",
+            "けれど、組織は散らばる。"
+          ],
+          [
+            "人を大切にすれば、働きやすくなる。",
+            "けれど、成果への厳しさがぼやける。"
+          ],
+          [
+            "成果を追いすぎれば、数字は伸びる。",
+            "けれど、人が離れていく。"
+          ]
+        ],
+        "band": "強い会社は、矛盾をなくした会社ではありません。それを、力に変えた会社です。",
+        "brand": "矛盾が、力になる。",
+        "def": "四神経営とは、組織の矛盾を統合する経営です。"
+      },
+      "reading07": {
+        "kicker": "READING ── 07",
+        "h": "組織が強くなるのは、4つの力が噛み合ったときです。",
+        "grid": [
+          [
+            "青龍",
+            "未来を描き、挑戦を生む"
+          ],
+          [
+            "朱雀",
+            "構想を伝え、人を巻き込む"
+          ],
+          [
+            "白虎",
+            "勝ち筋を絞り、成果にする"
+          ],
+          [
+            "玄武",
+            "成果を型にし、再現する"
+          ]
+        ],
+        "p1": "社長一人が描くだけでは、会社は変わりません。",
+        "p2": "4つの力がそろって初めて──四神経営では、この状態を「完全組織」と呼びます。"
+      },
+      "next": {
+        "kicker": "NEXT",
+        "h": "ここから先は、会社ごとに答えが違います。",
+        "p": [
+          "ここまでで、御社の現在地は見えました。",
+          "でも、組織は診断しただけでは変わりません。",
+          "必要なのは、御社の答えを設計することです。"
+        ],
+        "seminar": "四神経営 実践セミナーは、この診断結果を「御社の答え」に変えるための時間です。実際の企業事例をもとに、利き神の強みを活かしながら、影神をどう取り込み、4つの力をどう噛み合わせるのかを具体的に読み解きます。",
+        "button": "四神経営 実践セミナーの詳細を見る"
+      },
+      "pdf_note": "セミナーにご参加の方には、今回の診断結果をもとにした御社専用の完全版診断レポートをお渡しします。"
+    }
+  }
+};
+
+// ═══════════════════════════════════════════════════
+// 定数
+// ═══════════════════════════════════════════════════
+const GOD_ORDER = ['seiryu','suzaku','byakko','genbu'];
+const GOD_COLOR = {seiryu:'#2a5298', suzaku:'#e05c2a', byakko:'#c8922a', genbu:'#2a7a4a'};
+
+// ═══════════════════════════════════════════════════
+// パースヘルパー
+// ═══════════════════════════════════════════════════
+function esc(s){return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+
+// keywords: "創造・直感・スピード・拡張（強調：創造）"
+function parseKeywords(str){
+  let hl=null;
+  const m=str.match(/（強調：(.+?)）/);
+  if(m){hl=m[1];str=str.replace(m[0],'');}
+  const arr=str.split(/[・／]/).map(s=>s.trim()).filter(Boolean);
+  return {tags:arr, highlight:hl};
+}
+// title + ・bullets ブロック（strength/weakness/r2_bacard）
+function parseTitleBullets(str){
+  const lines=str.split('\n').map(s=>s.trim()).filter(Boolean);
+  const title=lines[0];
+  const bullets=lines.slice(1).map(l=>l.replace(/^・/,'').trim());
+  return {title, bullets};
+}
+// actions: 各行 "NN 見出し｜補足"
+function parseActions(str){
+  return str.split('\n').map(s=>s.trim()).filter(Boolean).map(line=>{
+    const numMatch=line.match(/^(\d{1,2})\s*(.*)$/);
+    const num=numMatch?numMatch[1]:'';
+    const rest=numMatch?numMatch[2]:line;
+    const parts=rest.split('｜');
+    return {num, strong:parts[0].trim(), sub:(parts[1]||'').trim()};
+  });
+}
+// shadow_symptoms: "▸..." 3行
+function parseSymptoms(str){
+  return str.split('\n').map(s=>s.trim()).filter(Boolean).map(l=>l.replace(/^▸/,'').trim());
+}
+// 単純な ・ / ／ 区切りリスト
+function splitList(str){ return str.split(/[・／\n]/).map(s=>s.trim()).filter(Boolean); }
+
+// CASE パース: \n区切りのセグメント。【ラベル】本文 or 素の行
+function parseCase(str){
+  const segs=str.split('\n').map(s=>s.trim()).filter(Boolean);
+  const out=[];
+  for(const seg of segs){
+    const m=seg.match(/^【(.+?)】([\s\S]*)$/);
+    if(!m){ out.push({type:'note', text:seg}); continue; }
+    const label=m[1].trim(); const body=m[2].trim();
+    if(label==='見出し'){ out.push({type:'h', text:body}); }
+    else if(label==='締め'){ out.push({type:'close', lines:body.split('／').map(s=>s.trim()).filter(Boolean)}); }
+    else if(label==='橋渡し'){ out.push({type:'bridge', text:body}); }
+    else if(/^BEFORE/.test(label)){ out.push({type:'before', head:label.replace(/^BEFORE\s*/,''), items:body.split('／').map(s=>s.trim()).filter(Boolean)}); }
+    else if(/^AFTER/.test(label)){ out.push(parseAfter(label.replace(/^AFTER\s*/,''), body)); }
+    else if(/^＋/.test(label)){ out.push(parseAfter(label, body)); } // ＋玄武 等
+    else { out.push({type:'note', text:body}); }
+  }
+  return out;
+}
+function parseAfter(head, body){
+  // A/B/Cランク構造か判定
+  if(/｜\s*B\s/.test(body) || /^A\s/.test(body)){
+    const parts=body.split('｜').map(s=>s.trim()).filter(Boolean);
+    const ranks=parts.map(p=>{
+      const letter=p[0];
+      const rest=p.slice(1).trim();
+      const ci=rest.indexOf('：');
+      const title=ci>=0?rest.slice(0,ci).trim():rest;
+      const itemsStr=ci>=0?rest.slice(ci+1):'';
+      const items=itemsStr.split('／').map(s=>s.trim()).filter(Boolean);
+      return {letter, title, items};
+    });
+    return {type:'after-rank', head, ranks};
+  }
+  return {type:'after', head, items:body.split('／').map(s=>s.trim()).filter(Boolean)};
+}
+
+// ═══════════════════════════════════════════════════
+// 構成比（sample_pct）→ 降順アイテム
+// ═══════════════════════════════════════════════════
+function compItems(pct){
+  return GOD_ORDER.map(g=>({g, name:DATA.gods[g], color:GOD_COLOR[g], v:pct[g]}))
+    .sort((a,b)=>b.v-a.v);
+}
+function compLegendHTML(pct, primaryGod){
+  return compItems(pct).map(it=>`
+    <div class="comp-item">
+      <div class="comp-item-left"><div class="comp-dot" style="background:${it.color};"></div><div class="comp-name${it.g===primaryGod?' primary':''}" style="${it.g===primaryGod?'color:'+it.color+';':''}">${it.name}</div></div>
+      <div class="comp-bar-track"><div class="comp-bar-fill" style="width:${it.v}%;background:${it.color};"></div></div>
+      <div class="comp-pct-num" style="color:${it.color};">${it.v}%</div>
+    </div>`).join('');
+}
+
+// ═══════════════════════════════════════════════════
+// PART1 描画
+// ═══════════════════════════════════════════════════
+function renderPart1(ki, si, rid){
+  const K=DATA.kiki_master[ki];
+  const KG=DATA.kage_master[si];
+  const C=DATA.combo_master[rid];
+  const F=DATA.fixed_texts.part1;
+  const kiName=DATA.gods[ki], siName=DATA.gods[si];
+  const kiKanji=DATA.kanji[ki], siKanji=DATA.kanji[si];
+  const kw=parseKeywords(K.keywords);
+  const pct=C.sample_pct;
+  const kiPct=pct[ki], siPct=pct[si];
+  const bullets=K.summary_bullets.split('\n').map(s=>s.trim()).filter(Boolean);
+  const actions=parseActions(K.actions);
+  const s1=parseTitleBullets(K.strength1), s2=parseTitleBullets(K.strength2);
+  const w1=parseTitleBullets(K.weakness1), w2=parseTitleBullets(K.weakness2);
+  const wall=K.wall_block.split('\n').map(s=>s.trim()).filter(Boolean);
+  const symptoms=parseSymptoms(C.shadow_symptoms);
+  const shTags=splitList(KG.shadow_tags);
+
+  const html=`
+  <header class="site-header">
+    <span class="brand">四神診断</span>
+    <span style="color:var(--line)">|</span>
+    <span style="color:var(--muted);font-size:12px;">${esc(F.header)}</span>
+  </header>
+
+  <!-- FV -->
+  <section class="fv">
+    <div class="fv-text">
+      <div class="fv-label">${esc(F.fv_label)}</div>
+      <div class="fv-type-badge">利き神タイプ ｜ ${esc(kiName)}</div>
+      <h1 class="fv-title"><span class="accent-char">${esc(kiName)}</span></h1>
+      <div class="fv-subtitle">${esc(K.subtitle)}</div>
+      <div class="fv-keywords">${kw.tags.map(t=>`<span class="kw-tag${t===kw.highlight?' highlight':''}">${esc(t)}</span>`).join('')}</div>
+      <p class="fv-desc">${esc(C.fv_desc)}</p>
+    </div>
+  </section>
+  <div class="scroll-hint">SCROLL ↓</div>
+
+  <!-- 四神構成 -->
+  <section class="section" style="padding:20px 0 0;">
+    <div class="section-inner">
+      <div class="content-card">
+        <div class="card-header"><div class="card-header-icon">%</div><div class="card-header-title">${esc(F.comp_heading).replace('四神構成','<strong>四神構成</strong>')}</div></div>
+        <div class="card-body" style="padding:16px 22px;">
+          <div class="comp-label" style="margin-bottom:8px;">${esc(F.comp_label)}</div>
+          <div class="comp-legend">${compLegendHTML(pct, ki)}</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- タイプとは -->
+  <section class="section">
+    <div class="section-inner">
+      <div class="content-card">
+        <div class="card-header"><div class="card-header-icon">${esc(kiKanji)}</div><div class="card-header-title">${esc(kiName)}タイプとは、<strong>こんな組織</strong>です</div></div>
+        <div class="card-body">
+          <p class="traits-lead">${esc(K.summary_body)}</p>
+          ${bullets.map(b=>`<div class="bullet-row"><span class="mk">⚡</span>${esc(b)}</div>`).join('')}
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 具体的な行動 -->
+  <section class="section" style="background:#f0ede8;">
+    <div class="section-inner">
+      <div class="content-card">
+        <div class="card-header"><div class="card-header-icon">⚡</div><div class="card-header-title">${esc(kiName)}の<strong>具体的な行動</strong></div></div>
+        <div class="card-body"><div class="actions-grid">
+          ${actions.map(a=>`<div class="action-item"><div class="action-num">${esc(a.num)}</div><div class="action-text"><strong>${esc(a.strong)}</strong><span>${esc(a.sub)}</span></div></div>`).join('')}
+        </div></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 強みと弱み -->
+  <section class="section">
+    <div class="section-inner">
+      <div class="content-card">
+        <div class="card-header"><div class="card-header-icon">力</div><div class="card-header-title">${esc(kiName)}の<strong>強み</strong>と<strong>弱み</strong></div></div>
+        <div class="card-body">
+          <div class="sw-grid">
+            ${[s1,s2].map(s=>`<div class="sw-card strength"><div class="sw-card-title">${esc(s.title)}</div><ul class="sw-list">${s.bullets.map(b=>`<li>${esc(b)}</li>`).join('')}</ul></div>`).join('')}
+          </div>
+          <div class="sw-bridge">${esc(F.sw_bridge)}</div>
+          <div class="sw-bridge-label">${esc(F.sw_bridge_label)}</div>
+          <div class="sw-grid">
+            ${[w1,w2].map(w=>`<div class="sw-card weakness"><div class="sw-card-title">${esc(w.title)}</div><ul class="sw-list">${w.bullets.map(b=>`<li>${esc(b)}</li>`).join('')}</ul></div>`).join('')}
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 壁ブロック -->
+  <section class="section">
+    <div class="section-inner plain-center">
+      <p class="wall-q">${esc(F.wall_question)}</p>
+      ${wall.slice(0,-1).map((l,i)=> i===wall.length-2 ? `<p class="wall-line" style="margin-bottom:32px;">${esc(l)}</p>` : `<p class="wall-line">${esc(l)}</p>`).join('')}
+      <p class="wall-punch">${esc(wall[wall.length-1])}</p>
+    </div>
+  </section>
+
+  <!-- 影神への転換 -->
+  <section class="navy">
+    <div class="section-inner">
+      <h3>${esc(F.shadow_transition_h)}</h3>
+      <p>${esc(F.shadow_transition_p).replace('影神の理解','<strong class="gold">影神の理解</strong>')}</p>
+    </div>
+  </section>
+  <section class="navy" style="padding:52px 0;">
+    <div class="section-inner">
+      <h3>${esc(F.shadow_def_h)}</h3>
+      <p>${esc(F.shadow_def_p)}</p>
+      <div class="navy-box"><div class="lb">${esc(F.shadow_result_label)}</div><div class="vl">御社の影神は、${esc(siName)}です。</div></div>
+    </div>
+  </section>
+
+  <!-- 影神カード -->
+  <section class="section">
+    <div class="section-inner">
+      <div class="content-card shadow-card">
+        <div class="card-header">
+          <div class="card-header-icon">${esc(siKanji)}</div>
+          <div style="flex:1;">
+            <div class="card-header-title">影神（第4位）── <strong>${esc(siName)}</strong></div>
+            <div class="shadow-sub">${esc(C.shadow_sub)}</div>
+          </div>
+        </div>
+        <div class="card-body">
+          <p style="font-size:15px;line-height:2;margin-bottom:20px;">${esc(C.shadow_lead)}</p>
+          <div class="shadow-symp">${symptoms.map(s=>`<div class="sy"><span class="mk">▸</span>${esc(s)}</div>`).join('')}</div>
+          <p style="font-size:15px;line-height:2;margin-bottom:8px;">${esc(C.shadow_bridge)}</p>
+          <p style="font-size:15px;line-height:2;color:var(--ink);font-weight:700;margin-bottom:4px;">${esc(KG.kage_def)}</p>
+          <div class="shadow-qualities">${shTags.map(t=>`<span class="sq-tag">${esc(t)}</span>`).join('')}</div>
+          <p class="shadow-growth">${esc(C.shadow_growth)}</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 中間CTA -->
+  <section class="section-cta" style="padding:32px 0;">
+    <a href="#" class="btn-primary btn-line">${esc(F.cta)} ▶</a>
+  </section>
+
+  <!-- 現状まで + この先で分かる -->
+  <section class="section">
+    <div class="section-inner">
+      <h3 style="font-family:'Zen Old Mincho',serif;font-size:clamp(19px,5.4vw,24px);font-weight:900;line-height:1.7;margin-bottom:18px;text-align:center;">${esc(F.nowmap_h)}</h3>
+      <p style="font-size:15px;line-height:2;margin-bottom:16px;">${esc(F.nowmap_p)}</p>
+      <p style="font-size:15px;line-height:2;margin-bottom:20px;">${esc(C.page_end_change)}</p>
+      <p style="font-size:15px;font-weight:700;line-height:1.9;margin-bottom:6px;">${esc(F.teaser_intro)}</p>
+      <div class="teaser-box">
+        ${(F.teaser_items||[]).map(t=>`<div class="ti"><span class="mk">—</span><span>${esc(t)}</span></div>`).join('')}
+      </div>
+      <p style="font-size:15px;font-weight:700;line-height:1.9;text-align:center;">${esc(F.teaser_after)}</p>
+    </div>
+  </section>
+
+  <!-- 登録CTA -->
+  <section class="section-cta">
+    <a href="#" class="btn-primary btn-line">${esc(F.cta)} ▶</a>
+    <div class="reg-list">${F.register.map(r=>`<div>${esc(r)}</div>`).join('')}</div>
+  </section>
+  `;
+  document.getElementById('part1').innerHTML=html;
+}
+
+// ═══════════════════════════════════════════════════
+// LINE 区切り
+// ═══════════════════════════════════════════════════
+function renderGate(){
+  document.getElementById('line-gate-slot').innerHTML=
+    `<div class="line-gate">${esc(DATA.fixed_texts.line_gate)}<span class="lg-mark">▼ ここから Part2（LINE登録後に開くページ）</span></div>`;
+}
+
+// ═══════════════════════════════════════════════════
+// CASE ブロック → HTML
+// ═══════════════════════════════════════════════════
+function caseBlockHTML(segs){
+  return segs.map(s=>{
+    if(s.type==='h') return `<h2 class="p2-h2">${esc(s.text)}</h2>`;
+    if(s.type==='note') return `<p class="p2-p">${esc(s.text)}</p>`;
+    if(s.type==='bridge') return `<p class="p2-bridge">${esc(s.text)}</p>`;
+    if(s.type==='close') return `<div class="p2-close">${s.lines.map(esc).join('<br>')}</div>`;
+    if(s.type==='before') return `<div class="ba-card before"><div class="ba-head"><span class="ba-tag">BEFORE</span>${esc(s.head)}</div><div class="ba-body"><div class="ba-list">${s.items.map(i=>`<div class="it">${esc(i)}</div>`).join('')}</div></div></div>`;
+    if(s.type==='after') return `<div class="ba-card after"><div class="ba-head"><span class="ba-tag">AFTER</span>${esc(s.head)}</div><div class="ba-body"><div class="ba-list">${s.items.map(i=>`<div class="it">${esc(i)}</div>`).join('')}</div></div></div>`;
+    if(s.type==='after-rank') return `<div class="ba-card after"><div class="ba-head"><span class="ba-tag">AFTER</span>${esc(s.head)}</div><div class="ba-body">${s.ranks.map(r=>`<div class="rank-card rank-${esc(r.letter)}"><div class="rank-head"><div class="rank-badge">${esc(r.letter)}</div><div class="rank-title">${esc(r.title)}</div></div><div class="rank-body">${r.items.map(i=>`<div class="it">${esc(i)}</div>`).join('')}</div></div>`).join('')}</div></div>`;
+    return '';
+  }).join('');
+}
+
+// ═══════════════════════════════════════════════════
+// PART2 描画
+// ═══════════════════════════════════════════════════
+function renderPart2(ki, si, rid){
+  const K=DATA.kiki_master[ki];
+  const KG=DATA.kage_master[si];
+  const C=DATA.combo_master[rid];
+  const F=DATA.fixed_texts.part2;
+  const kiName=DATA.gods[ki], siName=DATA.gods[si];
+  const pct=C.sample_pct;
+  const kiPct=pct[ki], siPct=pct[si];
+  const r2lines=K.r2_lines.split('／').map(s=>s.trim()).filter(Boolean);
+  const r2lead=K.r2_lead.split('／').map(s=>s.trim()).filter(Boolean);
+  const r2bacard=parseTitleBullets(K.r2_bacard);
+  const checklist=splitList(C.checklist);
+  const R6=F.reading06, R7=F.reading07, NX=F.next;
+
+  const html=`
+  <header class="site-header">
+    <span class="brand">四神診断</span>
+    <span style="color:var(--line)">|</span>
+    <span style="color:var(--muted);font-size:12px;">${esc(F.header)}</span>
+  </header>
+
+  <!-- READING 01 -->
+  <section class="p2-sec" style="background:linear-gradient(160deg,#f7f6f4 0%,#eeeaf4 55%,#e8e4f0 100%);">
+    <div class="p2-inner">
+      <div class="p2-kicker">${esc(F.reading01_kicker)}</div>
+      <h2 class="p2-h2">${esc(F.reading01_h)}</h2>
+      <p class="p2-p center mut">${esc(F.reading01_lead)}</p>
+      <div class="res-pair">
+        <div class="res-box riki"><div class="lab">利き神</div><div class="god-name">${esc(kiName)}</div></div>
+        <div class="res-box kage"><div class="lab">影神</div><div class="god-name">${esc(siName)}</div></div>
+      </div>
+      <div class="mini-comp"><div class="comp-label">${esc(DATA.fixed_texts.part1.comp_label)}</div><div class="comp-legend">${compLegendHTML(pct, ki)}</div></div>
+      <p class="p2-p">${esc(K.riki_oneline)}</p>
+      <p class="p2-p"><strong>${esc(siName)}</strong>は、${esc(KG.kage_def)}</p>
+      <p class="p2-p" style="margin-bottom:0;">${esc(F.reading01_close)}</p>
+    </div>
+  </section>
+
+  <!-- READING 02 -->
+  <section class="p2-sec">
+    <div class="p2-inner">
+      <div class="p2-kicker">READING ── 02</div>
+      <h2 class="p2-h2">${esc(K.r2_title)}</h2>
+      <p class="p2-p">${esc(K.r2_intro)}</p>
+      <div class="p2-lines">${r2lines.map(l=>`<div class="ln">${esc(l)}</div>`).join('')}</div>
+      ${r2lead.map(l=>`<p class="p2-p">${esc(l)}</p>`).join('')}
+      <div class="ba-card before"><div class="ba-head">${esc(r2bacard.title)}</div><div class="ba-body"><div class="ba-list">${r2bacard.bullets.map(b=>`<div class="it">${esc(b)}</div>`).join('')}</div></div></div>
+      <div class="p2-close">${esc(K.r2_close)}</div>
+    </div>
+  </section>
+
+  <!-- CASE 1 -->
+  <section class="p2-sec alt">
+    <div class="p2-inner">
+      <div class="p2-kicker case">CASE ── 1｜案件・プロジェクト</div>
+      ${caseBlockHTML(parseCase(C.case1))}
+    </div>
+  </section>
+
+  <!-- CASE 2 -->
+  <section class="p2-sec">
+    <div class="p2-inner">
+      <div class="p2-kicker case">CASE ── 2｜採用</div>
+      ${caseBlockHTML(parseCase(C.case2))}
+    </div>
+  </section>
+
+  <!-- READING 06 -->
+  <section class="p2-sec">
+    <div class="p2-inner">
+      <div class="p2-kicker">${esc(R6.kicker)}</div>
+      <h2 class="p2-h2">${esc(R6.h)}</h2>
+      <p class="p2-p">${esc(R6.sub)}</p>
+      <div class="p2-trade">${R6.trades.map(t=>`<div class="tr"><b>${esc(t[0])}</b><br><span>${esc(t[1])}</span></div>`).join('')}</div>
+    </div>
+    <div class="p2-band">
+      <div class="p2-inner">
+        <div class="big">${esc(R6.band)}</div>
+        <div class="p2-brand">${esc(R6.brand)}</div>
+        <div class="p2-def">${esc(R6.def)}</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- READING 07 -->
+  <section class="p2-sec alt">
+    <div class="p2-inner">
+      <div class="p2-kicker">${esc(R7.kicker)}</div>
+      <h2 class="p2-h2">${esc(R7.h)}</h2>
+      <div class="god-grid">${R7.grid.map((g,i)=>`<div class="god ${GOD_ORDER[i]}"><div class="nm">${esc(g[0])}</div><div class="ds">${esc(g[1])}</div></div>`).join('')}</div>
+      <p class="p2-p">${esc(R7.p1)}</p>
+      <p class="p2-p" style="margin-bottom:0;">${esc(R7.p2).replace('「完全組織」','<strong>「完全組織」</strong>')}</p>
+    </div>
+  </section>
+
+  <!-- NEXT -->
+  <section class="p2-cta">
+    <div class="p2-inner">
+      <div class="p2-kicker">${esc(NX.kicker)}</div>
+      <h2 class="p2-h2">${esc(NX.h)}</h2>
+      ${NX.p.map(p=>`<p class="p2-p" style="text-align:left;">${esc(p)}</p>`).join('')}
+      <div class="p2-check ask" style="text-align:left;">${checklist.map(c=>`<div class="ck">${esc(c)}</div>`).join('')}</div>
+      <p class="p2-p" style="text-align:left;">${esc(kiName)}${kiPct}%・${esc(siName)}${siPct}%の御社なら、どこから手をつけるか。</p>
+      <p class="p2-p" style="text-align:left;">${esc(NX.seminar)}</p>
+      <a href="#" class="btn-primary">${esc(NX.button)} ▶</a>
+      <p class="pdf-note">${esc(F.pdf_note)}</p>
+    </div>
+  </section>
+  `;
+  document.getElementById('part2').innerHTML=html;
+}
+
+// ═══════════════════════════════════════════════════
+// アクセント色 + ドラフトバッジ
+// ═══════════════════════════════════════════════════
+function applyTheme(ki, rid){
+  // アクセントは青龍×白虎モックの色(--accent=#2a5298)で全パターン固定。利き神ごとに変えない。
+  const C=DATA.combo_master[rid];
+  const draft = (C._src==='draft') || (DATA.kiki_master[rid.split('_')[0]]._src==='draft');
+  document.getElementById('draft-badge').style.display = draft ? 'block' : 'none';
+}
+
+// ═══════════════════════════════════════════════════
+// メイン描画
+// ═══════════════════════════════════════════════════
+function render(ki, si){
+  if(ki===si) return;
+  const rid=ki+'_'+si;
+  if(!DATA.combo_master[rid]) return;
+  applyTheme(ki, rid);
+  renderPart1(ki, si, rid);
+  renderGate();
+  renderPart2(ki, si, rid);
+  window.scrollTo({top:0, behavior:'auto'});
+}
+
+// ═══════════════════════════════════════════════════
+// セレクト初期化 + 同神除外
+// ═══════════════════════════════════════════════════
+const selKi=document.getElementById('sel-ki');
+const selSi=document.getElementById('sel-si');
+function fillSelect(sel, exclude, current){
+  sel.innerHTML='';
+  GOD_ORDER.forEach(g=>{
+    if(g===exclude) return;
+    const o=document.createElement('option');
+    o.value=g; o.textContent=DATA.gods[g];
+    if(g===current) o.selected=true;
+    sel.appendChild(o);
+  });
+}
+function syncAndRender(){
+  const ki=selKi.value;
+  let si=selSi.value;
+  if(si===ki){ si = GOD_ORDER.find(g=>g!==ki); }
+  fillSelect(selSi, ki, si);
+  render(ki, selSi.value);
+}
+selKi.addEventListener('change', syncAndRender);
+selSi.addEventListener('change', ()=>render(selKi.value, selSi.value));
+
+// 初期値: 青龍 × 白虎（mock実データ）
+fillSelect(selKi, null, 'seiryu');
+fillSelect(selSi, 'seiryu', 'byakko');
+
+// ═══════════════════════════════════════════════════
+// 16問モード（v3ロジック）
+// ═══════════════════════════════════════════════════
+const QUESTIONS = [
+  {id:'Q1', god:'seiryu', text:'新しい取り組みは、十分に検討する前でも「まずやってみよう」と会社として着手することが多い'},
+  {id:'Q2', god:'suzaku', text:'意思決定の前に、メンバーの納得感を確認する場を設けることが多い'},
+  {id:'Q3', god:'byakko', text:'面白さや、やりやすさよりも、成果が出るかどうかを基準に社内で判断されることが多い'},
+  {id:'Q4', god:'genbu',  text:'業務が仕組みやルールで回せるように、社内で整備されている'},
+  {id:'Q5', god:'seiryu', text:'成果が確実でなくても、社内で「面白そう」「可能性がありそう」と判断されたものは、実行に移されることが多い'},
+  {id:'Q6', god:'suzaku', text:'チームの雰囲気や人間関係を考慮して、社内で判断が変わることがある'},
+  {id:'Q7', god:'byakko', text:'成果を出すためであれば、やり方や人員の見直しに社内で踏み切ることがある'},
+  {id:'Q8', god:'genbu',  text:'決めたやり方や手順を、ぶれずに継続して積み上げることが習慣になっている'},
+  {id:'Q9', god:'seiryu', text:'新しい方法やトレンドが、実際の業務に取り入れられることが多い'},
+  {id:'Q10',god:'suzaku', text:'メンバーの挑戦や成長に対して、機会や役割を与えて後押しすることが多い'},
+  {id:'Q11',god:'byakko', text:'入社後、メンバーには高い水準が求められ、それに向けた指導が行われている'},
+  {id:'Q12',god:'genbu',  text:'新しい施策を増やすよりも、既存の仕組みの改善・最適化にリソースが割かれている'},
+  {id:'Q13',god:'seiryu', text:'業界初の取り組みや、誰もやっていないアイデアが社内で実際に検討のテーブルに上がりやすい'},
+  {id:'Q14',god:'suzaku', text:'効率や収益性が多少落ちる場合でも、人が気持ちよく働ける状態を優先して、環境や役割が調整されている'},
+  {id:'Q15',god:'byakko', text:'短期的な面白さに流されず、長期的に成果につながる選択が優先されている'},
+  {id:'Q16',god:'genbu',  text:'個人の頑張りに頼るよりも、仕組みで成果が出る状態をつくることが優先されている'}
+];
+const VALUES=[2,1,0,-1,-2];
+const SIZES=['sz-lg','sz-md','sz-sm','sz-md','sz-lg'];
+const _ans={};
+
+function diagnose(ans){
+  const gods=['seiryu','suzaku','byakko','genbu'];
+  const qmap={seiryu:['Q1','Q5','Q9','Q13'],suzaku:['Q2','Q6','Q10','Q14'],byakko:['Q3','Q7','Q11','Q15'],genbu:['Q4','Q8','Q12','Q16']};
+  const coreQ={seiryu:'Q1',suzaku:'Q14',byakko:'Q7',genbu:'Q16'};
+  const qOrder={'Q1':0,'Q7':1,'Q14':2,'Q16':3};
+  const sc={}; gods.forEach(g=>{sc[g]=qmap[g].reduce((s,q)=>s+(typeof ans[q]==='number'?ans[q]:0),0);});
+  const wsc={}; gods.forEach(g=>{wsc[g]=qmap[g].reduce((s,q)=>{const v=typeof ans[q]==='number'?ans[q]:0;return s+(q===coreQ[g]?v*1.5:v);},0);});
+  function breakTie(tied, forRiki){
+    if(!tied||tied.length===0) return gods[0];
+    if(tied.length===1) return tied[0];
+    const wVals=tied.map(g=>wsc[g]); const wT=forRiki?Math.max(...wVals):Math.min(...wVals);
+    tied=tied.filter(g=>wsc[g]===wT); if(tied.length===1) return tied[0];
+    const cVals=tied.map(g=>(typeof ans[coreQ[g]]==='number'?ans[coreQ[g]]:0)); const cT=forRiki?Math.max(...cVals):Math.min(...cVals);
+    tied=tied.filter(g=>(typeof ans[coreQ[g]]==='number'?ans[coreQ[g]]:0)===cT); if(tied.length===1) return tied[0];
+    const getVal=(g)=>{const vals=qmap[g].map(q=>typeof ans[q]==='number'?ans[q]:0);return forRiki?Math.max(...vals):Math.min(...vals);};
+    const gT=forRiki?Math.max(...tied.map(getVal)):Math.min(...tied.map(getVal));
+    tied=tied.filter(g=>getVal(g)===gT); if(tied.length===1) return tied[0];
+    const getCnt=(g)=>qmap[g].filter(q=>{const v=typeof ans[q]==='number'?ans[q]:0;return forRiki?v>=1:v<=-1;}).length;
+    const nT=Math.max(...tied.map(getCnt));
+    tied=tied.filter(g=>getCnt(g)===nT); if(tied.length===1) return tied[0];
+    return tied.sort((a,b)=>qOrder[coreQ[a]]-qOrder[coreQ[b]])[0];
+  }
+  const maxSc=Math.max(...gods.map(g=>sc[g]));
+  const rikijin=breakTie(gods.filter(g=>sc[g]===maxSc),true);
+  const others=gods.filter(g=>g!==rikijin);
+  const minSc=Math.min(...others.map(g=>sc[g]));
+  const kagesin=breakTie(others.filter(g=>sc[g]===minSc),false);
+  return {rikijin, kagesin};
+}
+
+function buildQuiz(){
+  const c=document.getElementById('quiz-questions');
+  c.innerHTML=QUESTIONS.map((q,qi)=>`
+    <div class="q-block">
+      <span class="q-num">Q${qi+1} / 16</span>
+      <div class="q-text">${esc(q.text)}</div>
+      <div class="circles-wrap">
+        <span class="cw-lbl l">当てはまる</span>
+        <div class="circles-inner">
+          ${VALUES.map((v,i)=>`<div class="circle ${SIZES[i]}" data-q="${q.id}" data-val="${v}" data-pos="${i}"></div>`).join('')}
+        </div>
+        <span class="cw-lbl r">当てはまらない</span>
+      </div>
+    </div>`).join('');
+  c.querySelectorAll('.circle').forEach(el=>{
+    el.addEventListener('click',()=>{
+      const q=el.dataset.q;
+      c.querySelectorAll('.circle[data-q="'+q+'"]').forEach(x=>x.classList.remove('sel'));
+      el.classList.add('sel');
+      _ans[q]=parseInt(el.dataset.val,10);
+    });
+  });
+}
+
+document.getElementById('toggle-quiz').addEventListener('click',()=>{
+  const w=document.getElementById('quiz-wrap');
+  w.classList.toggle('open');
+  document.getElementById('toggle-quiz').textContent = w.classList.contains('open') ? '16問モード ▴' : '16問モード ▾';
+});
+document.getElementById('quiz-random').addEventListener('click',()=>{
+  QUESTIONS.forEach(q=>{
+    const v=VALUES[Math.floor(Math.random()*VALUES.length)];
+    _ans[q.id]=v;
+    const el=document.querySelector('.circle[data-q="'+q.id+'"][data-val="'+v+'"]');
+    document.querySelectorAll('.circle[data-q="'+q.id+'"]').forEach(x=>x.classList.remove('sel'));
+    if(el) el.classList.add('sel');
+  });
+});
+document.getElementById('quiz-submit').addEventListener('click',()=>{
+  const missing=QUESTIONS.filter(q=>typeof _ans[q.id]!=='number');
+  const err=document.getElementById('quiz-err');
+  if(missing.length){ err.style.display='block'; return; }
+  err.style.display='none';
+  const {rikijin, kagesin}=diagnose(_ans);
+  fillSelect(selKi, null, rikijin);
+  fillSelect(selSi, rikijin, kagesin);
+  render(rikijin, kagesin);
+});
+
+buildQuiz();
+
+// ═══════════════════════════════════════════════════
+// 初回描画
+// ═══════════════════════════════════════════════════
+render('seiryu','byakko');
+</script>
+</body>
+</html>
